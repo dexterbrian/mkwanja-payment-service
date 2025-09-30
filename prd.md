@@ -561,11 +561,10 @@ Authorization: Bearer <JWT_TOKEN>
 
 ```
 mkwanja-payment-service/
-├── cmd/
-│   └── server/
-│       └── main.go                 # Application entry point
+├── main.go                 # Application entry point
 ├── config/
 │   └── config.go                   # Configuration management
+│   └── database.go                  
 ├── internal/
 │   ├── handlers/                   # HTTP handlers
 │   │   ├── payment_handler.go
@@ -593,16 +592,15 @@ mkwanja-payment-service/
 │       ├── jwt.go
 │       ├── validator.go
 │       └── logger.go
+│   └── tests/
 ├── pkg/                            # Shared/external packages
 │   └── mpesa/
 │       └── client.go               # M-PESA API client
-├── migrations/                     # Database migrations
+├── db/migrations/                     # Database migrations
 │   ├── 001_create_transactions.sql
 │   ├── 002_create_journal.sql
 │   └── ...
-├── .env.example                    # Environment variables template
-├── Dockerfile
-├── docker-compose.yml
+├── sample.env                    # Environment variables template
 ├── go.mod
 ├── go.sum
 └── README.md
