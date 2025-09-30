@@ -1,0 +1,29 @@
+# Binary files
+*.exe
+*.out
+*.dll
+
+# Go dependencies
+/vendor/
+/bin/
+/pkg/
+/tmp/
+*.a
+
+# Go build artifacts
+*.log
+*.tmp
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Go modules (keep go.mod & go.sum)
+#go.sum
+
+# Environment files
+#.env
+.env.local
