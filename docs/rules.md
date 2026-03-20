@@ -5,3 +5,5 @@
 3. **Idempotency is Mandatory:** No payment initiation endpoint should function without a valid idempotency key.
 4. **Idiot-Proof Callbacks:** Always assume incoming callback data could be malicious. Verify signatures and origins before updating transaction statuses.
 5. **Separation of Concerns:** The payment service should not hold user balance logic; it only handles the execution and logging of the transfer. Balance is updated via DB triggers or by the App after verification.
+6. **Write your learnings in notes.md:** Document your learnings, challenges, and solutions in notes.md. This will help you and others to understand the codebase better.
+7. **Always code as per the trd.md and prd.md:** Always code as per the trd.md and prd.md. If there is a conflict between the two, refer to the prd.md.
