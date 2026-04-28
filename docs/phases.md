@@ -30,6 +30,7 @@
 - [ ] 2.6 Write sqlc query files: `businesses.sql`, `credentials.sql`, `payments.sql`, `journal_accounts.sql`, `journal.sql`
 - [ ] 2.7 Run `sqlc generate` — verify zero errors, generated code compiles
 - [ ] 2.8 Write domain types: `internal/domain/business.go`, `payment.go`, `journal.go`
+- [ ] 2.9 Write unit tests for domain logic (validation etc.)
 
 ---
 
