@@ -22,15 +22,15 @@
 ## Phase 2 — Database Migrations & sqlc
 *Goal: All SQL schemas defined; sqlc generates clean Go code.*
 
-- [ ] 2.1 Write `001_businesses.sql`
-- [ ] 2.2 Write `002_credentials.sql`
-- [ ] 2.3 Write `003_payments.sql` (enums, payments table, payment_events, rules, indexes)
-- [ ] 2.4 Write `004_journal_accounts.sql`
-- [ ] 2.5 Write `005_journal.sql` (journal table, rules, indexes, `account_balances` view)
-- [ ] 2.6 Write sqlc query files: `businesses.sql`, `credentials.sql`, `payments.sql`, `journal_accounts.sql`, `journal.sql`
-- [ ] 2.7 Run `sqlc generate` — verify zero errors, generated code compiles
-- [ ] 2.8 Write domain types: `internal/domain/business.go`, `payment.go`, `journal.go`
-- [ ] 2.9 Write unit tests for domain logic (validation etc.)
+- [x] 2.1 Write `001_businesses.sql`
+- [x] 2.2 Write `002_credentials.sql`
+- [x] 2.3 Write `003_payments.sql` (enums, payments table, payment_events, rules, indexes)
+- [x] 2.4 Write `004_journal_accounts.sql`
+- [x] 2.5 Write `005_journal.sql` (journal table, rules, indexes, `account_balances` view)
+- [x] 2.6 Write sqlc query files: `businesses.sql`, `credentials.sql`, `payments.sql`, `journal_accounts.sql`, `journal.sql`
+- [x] 2.7 Run `sqlc generate` — verify zero errors, generated code compiles
+- [x] 2.8 Write domain types: `internal/domain/business.go`, `payment.go`, `journal.go`
+- [x] 2.9 Write unit tests for domain logic (validation etc.)
 
 ---
 
