@@ -3,13 +3,13 @@
 **Version:** 0.3.0
 **Status:** Ready for build
 **Repo:** `dexterbrian/mkwanja-payment-svc`
-**Consumed by:** `eazibiz`, `kanisa-digital`, `mkwanja` (Flutter), `ubuntu-coop`, and `mkwanja` itself as the operator/owner of the payment service.
+**Consumed by:** `eazibiz`, `kanisa-digital`, `mkwanja` (Flutter), `ubuntu-coop`. Operated by Dexter.
 
 ---
 
 ## 1. Purpose
 
-`mkwanja-payment-svc` is the central payment processing and double-entry ledger service for all Dexter's and Appify's applications — including mkwanja itself. It is the single point of contact for any money movement — no consumer application ever talks to Safaricom's Daraja API directly. The mkwanja operator can also onboard itself as a client and receive payments directly through the service.
+`mkwanja-payment-svc` is the central payment processing and double-entry ledger service for all Dexter's and Appify's applications. It is the single point of contact for any money movement — no consumer application ever talks to Safaricom's Daraja API directly. Dexter operates the service and can also onboard himself as a client to receive payments directly through it.
 
 The service operates on a **bring-your-own-till model**: each client (e.g., a business using eazibiz or an individual using mkwanja) registers their own Safaricom M-PESA till number, obtains their own Daraja API credentials, and provides those to the payment service. The service encrypts and stores them, then uses them to make API calls on that client's behalf. This model means mkwanja does not act as a Payment Service Provider and is not required to hold a PSP licence from the Central Bank of Kenya (CBK).
 
@@ -53,7 +53,7 @@ This model must be maintained consistently:
 
 ### 5.1 Client onboarding
 
-A *client* is any entity that receives or sends money through the service. This includes a business using eazibiz, an individual using the mkwanja Flutter app, a church using kanisa — and the mkwanja operator itself, which can onboard itself to receive payments directly.
+A *client* is any entity that receives or sends money through the service. This includes a business using eazibiz, an individual using the mkwanja Flutter app, a church using kanisa — and Dexter, who can onboard himself to receive payments directly.
 
 When a client is onboarded onto a consumer app, they provide:
 
@@ -100,7 +100,7 @@ Each consumer app has its own isolated Postgres database hosted as a separate Su
 | Consumer  | Database          | Notes                                                              |
 | --------- | ----------------- | ------------------------------------------------------------------ |
 | `eazibiz` | `payment_eazibiz` | One Supabase project shared across all Eazibiz deployments         |
-| `mkwanja` | `payment_mkwanja` | Mkwanja Flutter app users; also used by the mkwanja operator/owner |
+| `mkwanja` | `payment_mkwanja` | Mkwanja Flutter app users                                  |
 | `kanisa`  | `payment_kanisa`  | Kanisa Digital churches                                            |
 | `ubuntu`  | `payment_ubuntu`  | Ubuntu Co-op                                                       |
 
@@ -259,5 +259,5 @@ Background job every 5 minutes: queries any payment in `pending` state older tha
 ## 14. Future
 
 - **Stripe or bank:** `provider` field on payments (`mpesa` | `stripe` | `equity` | `ncba`| `coop`) accommodates this without schema change
-- **Operator-as-client:** mkwanja can be registered as a client in its own consumer database to receive payments directly
+- **Operator-as-client:** Dexter can be registered as a client in his chosen consumer database to receive payments directly
 - **Additional consumer apps:** adding a new consumer requires adding env vars and running migrations against a new database — no code changes to the service

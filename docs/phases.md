@@ -51,7 +51,7 @@
 
 ### 3.8 Operator-as-client
 
-- [ ] 3.8.1 Seed an operator `client_id` (e.g., via env var `OPERATOR_CLIENT_ID`) on mkwanja consumer DB on startup if not present
+- [ ] 3.8.1 Seed an operator `client_id` (e.g., via env var `OPERATOR_CLIENT_ID`) on the operator's chosen consumer DB on startup if not present
 - [ ] 3.8.2 Provide operator-facing endpoint or admin path to update operator credentials (`PUT /v1/clients/:operator_client_id/credentials`)
 - [ ] 3.8.3 Ensure operator client can receive STK Push / C2B payments just like any other client
 
