@@ -104,6 +104,9 @@ func main() {
 		ConsumerRegistry: consumerRegistry,
 		DBRegistry:       registry,
 		EncryptKey:       encryptKey,
+		DarajaBaseURL:    cfg.DarajaBaseURL,
+		CallbackURL:      cfg.DarajaCallbackURL,
+		RedisClient:      rdb,
 		Logger:           slog.Default(),
 		OperatorClientID: cfg.OperatorClientID,
 	})
