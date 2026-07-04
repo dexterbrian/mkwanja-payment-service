@@ -4,13 +4,13 @@ CREATE TYPE normal_balance AS ENUM ('debit', 'credit');
 
 CREATE TABLE journal_accounts (
     id             TEXT NOT NULL,
-    business_id    TEXT NOT NULL REFERENCES businesses(id),
+    client_id      TEXT NOT NULL REFERENCES clients(id),
     name           TEXT NOT NULL,
     account_type   account_type NOT NULL,
     normal_balance normal_balance NOT NULL,
     description    TEXT,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (business_id, id)
+    PRIMARY KEY (client_id, id)
 );
 
 -- +goose Down

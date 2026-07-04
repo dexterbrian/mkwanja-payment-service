@@ -35,7 +35,7 @@ var phoneRegexp = regexp.MustCompile(`^2547\d{8}$`)
 
 type Payment struct {
 	ID                string
-	BusinessID        string
+	ClientID          string
 	IdempotencyKey    string
 	Provider          PaymentProvider
 	PaymentType       PaymentType
@@ -57,8 +57,8 @@ type Payment struct {
 }
 
 func (p *Payment) Validate() error {
-	if p.BusinessID == "" {
-		return fmt.Errorf("business_id is required")
+	if p.ClientID == "" {
+		return fmt.Errorf("client_id is required")
 	}
 	if p.IdempotencyKey == "" {
 		return fmt.Errorf("idempotency_key is required")

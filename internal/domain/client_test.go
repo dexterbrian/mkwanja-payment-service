@@ -4,33 +4,33 @@ import (
 	"testing"
 )
 
-func TestBusiness_Validate(t *testing.T) {
+func TestClient_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		b       Business
+		c       Client
 		wantErr bool
 		errMsg  string
 	}{
 		{
-			name:    "valid business",
-			b:       Business{ExternalID: "ext-001", Name: "Acme Ltd"},
+			name:    "valid client",
+			c:       Client{ExternalID: "ext-001", Name: "Acme Ltd"},
 			wantErr: false,
 		},
 		{
 			name:    "missing external_id",
-			b:       Business{Name: "Acme Ltd"},
+			c:       Client{Name: "Acme Ltd"},
 			wantErr: true,
 			errMsg:  "external_id is required",
 		},
 		{
 			name:    "missing name",
-			b:       Business{ExternalID: "ext-001"},
+			c:       Client{ExternalID: "ext-001"},
 			wantErr: true,
 			errMsg:  "name is required",
 		},
 		{
 			name:    "both fields missing",
-			b:       Business{},
+			c:       Client{},
 			wantErr: true,
 			errMsg:  "external_id is required",
 		},
@@ -38,7 +38,7 @@ func TestBusiness_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.b.Validate()
+			err := tt.c.Validate()
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error %q, got nil", tt.errMsg)

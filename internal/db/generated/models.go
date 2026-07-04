@@ -317,14 +317,14 @@ func (ns NullPaymentType) Value() (driver.Value, error) {
 }
 
 type AccountBalance struct {
-	BusinessID        string `json:"business_id"`
+	ClientID          string `json:"client_id"`
 	AccountID         string `json:"account_id"`
 	TotalDebitsCents  int64  `json:"total_debits_cents"`
 	TotalCreditsCents int64  `json:"total_credits_cents"`
 	NetCents          int64  `json:"net_cents"`
 }
 
-type Business struct {
+type Client struct {
 	ID         string    `json:"id"`
 	ExternalID string    `json:"external_id"`
 	Name       string    `json:"name"`
@@ -333,9 +333,9 @@ type Business struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-type BusinessCredential struct {
+type ClientCredential struct {
 	ID                          string         `json:"id"`
-	BusinessID                  string         `json:"business_id"`
+	ClientID                    string         `json:"client_id"`
 	Shortcode                   string         `json:"shortcode"`
 	ConsumerKeyEncrypted        string         `json:"consumer_key_encrypted"`
 	ConsumerSecretEncrypted     string         `json:"consumer_secret_encrypted"`
@@ -348,7 +348,7 @@ type BusinessCredential struct {
 
 type Journal struct {
 	ID          int64         `json:"id"`
-	BusinessID  string        `json:"business_id"`
+	ClientID    string        `json:"client_id"`
 	PaymentID   string        `json:"payment_id"`
 	AccountID   string        `json:"account_id"`
 	EntryType   EntryType     `json:"entry_type"`
@@ -361,7 +361,7 @@ type Journal struct {
 
 type JournalAccount struct {
 	ID            string         `json:"id"`
-	BusinessID    string         `json:"business_id"`
+	ClientID      string         `json:"client_id"`
 	Name          string         `json:"name"`
 	AccountType   AccountType    `json:"account_type"`
 	NormalBalance NormalBalance  `json:"normal_balance"`
@@ -371,7 +371,7 @@ type JournalAccount struct {
 
 type Payment struct {
 	ID                string                `json:"id"`
-	BusinessID        string                `json:"business_id"`
+	ClientID          string                `json:"client_id"`
 	IdempotencyKey    string                `json:"idempotency_key"`
 	Provider          PaymentProvider       `json:"provider"`
 	PaymentType       PaymentType           `json:"payment_type"`

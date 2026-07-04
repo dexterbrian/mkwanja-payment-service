@@ -9,9 +9,9 @@ import (
 
 	"mkwanja-payment-svc/internal/config"
 	"mkwanja-payment-svc/internal/db"
+	dbgen "mkwanja-payment-svc/internal/db/generated"
 	"mkwanja-payment-svc/internal/handler"
 	"mkwanja-payment-svc/internal/middleware"
-	dbgen "mkwanja-payment-svc/internal/db/generated"
 	"mkwanja-payment-svc/internal/repository"
 	"mkwanja-payment-svc/internal/service"
 )
@@ -42,69 +42,69 @@ func Setup(app *fiber.App, deps Dependencies) {
 	// Consumer API — requires consumer auth + DB resolution
 	api := app.Group("/v1", middleware.Consumer(deps.DBRegistry, deps.ConsumerRegistry))
 
-	// Business handler with lazy service creation per request
-	bizHandler := &businessHandlerAdapter{
+	// Client handler with lazy service creation per request
+	clientHandler := &clientHandlerAdapter{
 		encryptKey: deps.EncryptKey,
 		logger:     deps.Logger,
 	}
 
-	// Business CRUD
-	api.Post("/businesses", middleware.Idempotency(), bizHandler.registerBusiness)
-	api.Post("/businesses/test-credentials", middleware.Idempotency(), bizHandler.testCredentials)
-	api.Put("/businesses/:id/credentials", middleware.Idempotency(), bizHandler.updateCredentials)
-	api.Delete("/businesses/:id", bizHandler.deactivateBusiness)
-	api.Get("/businesses/:id", bizHandler.getBusiness)
-	api.Get("/businesses", bizHandler.listBusinesses)
+	// Client CRUD
+	api.Post("/clients", middleware.Idempotency(), clientHandler.registerClient)
+	api.Post("/clients/test-credentials", middleware.Idempotency(), clientHandler.testCredentials)
+	api.Put("/clients/:client_id/credentials", middleware.Idempotency(), clientHandler.updateCredentials)
+	api.Delete("/clients/:client_id", clientHandler.deactivateClient)
+	api.Get("/clients/:client_id", clientHandler.getClient)
+	api.Get("/clients", clientHandler.listClients)
 }
 
-// businessHandlerAdapter creates the service per-request from the pool in context.
-type businessHandlerAdapter struct {
+// clientHandlerAdapter creates the service per-request from the pool in context.
+type clientHandlerAdapter struct {
 	encryptKey []byte
 	logger     *slog.Logger
 }
 
-func (a *businessHandlerAdapter) serviceFromCtx(c *fiber.Ctx) *service.BusinessService {
+func (a *clientHandlerAdapter) serviceFromCtx(c *fiber.Ctx) *service.ClientService {
 	pool, ok := c.Locals("db_pool").(*pgxpool.Pool)
 	if !ok {
 		return nil
 	}
 	stdlibDB := stdlib.OpenDBFromPool(pool)
-	repo := repository.NewPgxBusinessRepo(dbgen.New(stdlibDB))
-	return service.NewBusinessService(repo, a.encryptKey, a.logger)
+	repo := repository.NewPgxClientRepo(dbgen.New(stdlibDB))
+	return service.NewClientService(repo, a.encryptKey, a.logger)
 }
 
-func (a *businessHandlerAdapter) registerBusiness(c *fiber.Ctx) error {
+func (a *clientHandlerAdapter) registerClient(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
-	h := handler.NewBusinessHandler(svc, a.logger)
-	return h.RegisterBusiness(c)
+	h := handler.NewClientHandler(svc, a.logger)
+	return h.RegisterClient(c)
 }
 
-func (a *businessHandlerAdapter) testCredentials(c *fiber.Ctx) error {
+func (a *clientHandlerAdapter) testCredentials(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
-	h := handler.NewBusinessHandler(svc, a.logger)
+	h := handler.NewClientHandler(svc, a.logger)
 	return h.TestCredentials(c)
 }
 
-func (a *businessHandlerAdapter) updateCredentials(c *fiber.Ctx) error {
+func (a *clientHandlerAdapter) updateCredentials(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
-	h := handler.NewBusinessHandler(svc, a.logger)
+	h := handler.NewClientHandler(svc, a.logger)
 	return h.UpdateCredentials(c)
 }
 
-func (a *businessHandlerAdapter) deactivateBusiness(c *fiber.Ctx) error {
+func (a *clientHandlerAdapter) deactivateClient(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
-	h := handler.NewBusinessHandler(svc, a.logger)
-	return h.DeactivateBusiness(c)
+	h := handler.NewClientHandler(svc, a.logger)
+	return h.DeactivateClient(c)
 }
 
-func (a *businessHandlerAdapter) getBusiness(c *fiber.Ctx) error {
+func (a *clientHandlerAdapter) getClient(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
-	h := handler.NewBusinessHandler(svc, a.logger)
-	return h.GetBusiness(c)
+	h := handler.NewClientHandler(svc, a.logger)
+	return h.GetClient(c)
 }
 
-func (a *businessHandlerAdapter) listBusinesses(c *fiber.Ctx) error {
+func (a *clientHandlerAdapter) listClients(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
-	h := handler.NewBusinessHandler(svc, a.logger)
-	return h.ListBusinesses(c)
+	h := handler.NewClientHandler(svc, a.logger)
+	return h.ListClients(c)
 }

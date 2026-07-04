@@ -16,7 +16,7 @@ func TestPayment_Validate(t *testing.T) {
 		{
 			name: "valid payment",
 			p: Payment{
-				BusinessID:     "biz-1",
+				ClientID:       "client-1",
 				IdempotencyKey: "idem-1",
 				AmountCents:    1000,
 				Reference:      "ref-1",
@@ -24,19 +24,19 @@ func TestPayment_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "missing business_id",
+			name: "missing client_id",
 			p: Payment{
 				IdempotencyKey: "idem-1",
 				AmountCents:    1000,
 				Reference:      "ref-1",
 			},
 			wantErr: true,
-			errMsg:  "business_id is required",
+			errMsg:  "client_id is required",
 		},
 		{
 			name: "missing idempotency_key",
 			p: Payment{
-				BusinessID:  "biz-1",
+				ClientID:    "client-1",
 				AmountCents: 1000,
 				Reference:   "ref-1",
 			},
@@ -46,7 +46,7 @@ func TestPayment_Validate(t *testing.T) {
 		{
 			name: "zero amount",
 			p: Payment{
-				BusinessID:     "biz-1",
+				ClientID:       "client-1",
 				IdempotencyKey: "idem-1",
 				AmountCents:    0,
 				Reference:      "ref-1",
@@ -57,7 +57,7 @@ func TestPayment_Validate(t *testing.T) {
 		{
 			name: "negative amount",
 			p: Payment{
-				BusinessID:     "biz-1",
+				ClientID:       "client-1",
 				IdempotencyKey: "idem-1",
 				AmountCents:    -100,
 				Reference:      "ref-1",
@@ -68,7 +68,7 @@ func TestPayment_Validate(t *testing.T) {
 		{
 			name: "missing reference",
 			p: Payment{
-				BusinessID:     "biz-1",
+				ClientID:       "client-1",
 				IdempotencyKey: "idem-1",
 				AmountCents:    1000,
 			},
@@ -78,7 +78,7 @@ func TestPayment_Validate(t *testing.T) {
 		{
 			name: "valid phone number",
 			p: Payment{
-				BusinessID:     "biz-1",
+				ClientID:       "client-1",
 				IdempotencyKey: "idem-1",
 				AmountCents:    1000,
 				Reference:      "ref-1",
@@ -89,7 +89,7 @@ func TestPayment_Validate(t *testing.T) {
 		{
 			name: "invalid phone number",
 			p: Payment{
-				BusinessID:     "biz-1",
+				ClientID:       "client-1",
 				IdempotencyKey: "idem-1",
 				AmountCents:    1000,
 				Reference:      "ref-1",

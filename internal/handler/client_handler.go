@@ -8,22 +8,22 @@ import (
 	"mkwanja-payment-svc/internal/service"
 )
 
-// BusinessHandler handles business and credential HTTP endpoints.
-type BusinessHandler struct {
-	svc    *service.BusinessService
+// ClientHandler handles client and credential HTTP endpoints.
+type ClientHandler struct {
+	svc    *service.ClientService
 	logger *slog.Logger
 }
 
-// NewBusinessHandler creates a BusinessHandler.
-func NewBusinessHandler(svc *service.BusinessService, logger *slog.Logger) *BusinessHandler {
+// NewClientHandler creates a ClientHandler.
+func NewClientHandler(svc *service.ClientService, logger *slog.Logger) *ClientHandler {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &BusinessHandler{svc: svc, logger: logger}
+	return &ClientHandler{svc: svc, logger: logger}
 }
 
-// RegisterBusinessRequest is the JSON body for POST /v1/businesses.
-type RegisterBusinessRequest struct {
+// RegisterClientRequest is the JSON body for POST /v1/clients.
+type RegisterClientRequest struct {
 	ExternalID         string `json:"external_id"`
 	Name               string `json:"name"`
 	Shortcode          string `json:"shortcode"`
@@ -34,14 +34,14 @@ type RegisterBusinessRequest struct {
 	SecurityCredential string `json:"security_credential"`
 }
 
-// RegisterBusiness handles POST /v1/businesses.
-func (h *BusinessHandler) RegisterBusiness(c *fiber.Ctx) error {
-	var req RegisterBusinessRequest
+// RegisterClient handles POST /v1/clients.
+func (h *ClientHandler) RegisterClient(c *fiber.Ctx) error {
+	var req RegisterClientRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Invalid JSON body"))
 	}
 
-	b, err := h.svc.RegisterBusiness(c.Context(), service.RegisterBusinessRequest{
+	client, err := h.svc.RegisterClient(c.Context(), service.RegisterClientRequest{
 		ExternalID:         req.ExternalID,
 		Name:               req.Name,
 		Shortcode:          req.Shortcode,
@@ -52,28 +52,28 @@ func (h *BusinessHandler) RegisterBusiness(c *fiber.Ctx) error {
 		SecurityCredential: req.SecurityCredential,
 	})
 	if err != nil {
-		h.logger.Error("register business failed", "error", err)
+		h.logger.Error("register client failed", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(errResp("REGISTRATION_FAILED", err.Error()))
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"id":          b.ID,
-		"external_id": b.ExternalID,
-		"name":        b.Name,
-		"active":      b.Active,
-		"created_at":  b.CreatedAt,
+		"id":          client.ID,
+		"external_id": client.ExternalID,
+		"name":        client.Name,
+		"active":      client.Active,
+		"created_at":  client.CreatedAt,
 	})
 }
 
-// TestCredentialsRequest is the JSON body for POST /v1/businesses/test-credentials.
+// TestCredentialsRequest is the JSON body for POST /v1/clients/test-credentials.
 type TestCredentialsRequest struct {
 	ConsumerKey    string `json:"consumer_key"`
 	ConsumerSecret string `json:"consumer_secret"`
 	Shortcode      string `json:"shortcode"`
 }
 
-// TestCredentials handles POST /v1/businesses/test-credentials.
-func (h *BusinessHandler) TestCredentials(c *fiber.Ctx) error {
+// TestCredentials handles POST /v1/clients/test-credentials.
+func (h *ClientHandler) TestCredentials(c *fiber.Ctx) error {
 	var req TestCredentialsRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Invalid JSON body"))
@@ -91,7 +91,7 @@ func (h *BusinessHandler) TestCredentials(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok", "message": "Credentials are valid"})
 }
 
-// UpdateCredentialsRequest is the JSON body for PUT /v1/businesses/:id/credentials.
+// UpdateCredentialsRequest is the JSON body for PUT /v1/clients/:client_id/credentials.
 type UpdateCredentialsRequest struct {
 	Shortcode          string `json:"shortcode"`
 	ConsumerKey        string `json:"consumer_key"`
@@ -101,11 +101,11 @@ type UpdateCredentialsRequest struct {
 	SecurityCredential string `json:"security_credential"`
 }
 
-// UpdateCredentials handles PUT /v1/businesses/:id/credentials.
-func (h *BusinessHandler) UpdateCredentials(c *fiber.Ctx) error {
-	businessID := c.Params("id")
-	if businessID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Business ID is required"))
+// UpdateCredentials handles PUT /v1/clients/:client_id/credentials.
+func (h *ClientHandler) UpdateCredentials(c *fiber.Ctx) error {
+	clientID := c.Params("client_id")
+	if clientID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Client ID is required"))
 	}
 
 	var req UpdateCredentialsRequest
@@ -114,7 +114,7 @@ func (h *BusinessHandler) UpdateCredentials(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.UpdateCredentials(c.Context(), service.UpdateCredentialsRequest{
-		BusinessID:         businessID,
+		ClientID:           clientID,
 		Shortcode:          req.Shortcode,
 		ConsumerKey:        req.ConsumerKey,
 		ConsumerSecret:     req.ConsumerSecret,
@@ -129,64 +129,64 @@ func (h *BusinessHandler) UpdateCredentials(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok", "message": "Credentials updated"})
 }
 
-// DeactivateBusiness handles DELETE /v1/businesses/:id.
-func (h *BusinessHandler) DeactivateBusiness(c *fiber.Ctx) error {
-	businessID := c.Params("id")
-	if businessID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Business ID is required"))
+// DeactivateClient handles DELETE /v1/clients/:client_id.
+func (h *ClientHandler) DeactivateClient(c *fiber.Ctx) error {
+	clientID := c.Params("client_id")
+	if clientID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Client ID is required"))
 	}
 
-	if err := h.svc.DeactivateBusiness(c.Context(), businessID); err != nil {
-		h.logger.Error("deactivate business failed", "error", err)
+	if err := h.svc.DeactivateClient(c.Context(), clientID); err != nil {
+		h.logger.Error("deactivate client failed", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(errResp("DEACTIVATION_FAILED", err.Error()))
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok", "message": "Business deactivated"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok", "message": "Client deactivated"})
 }
 
-// GetBusiness handles GET /v1/businesses/:id.
-func (h *BusinessHandler) GetBusiness(c *fiber.Ctx) error {
-	id := c.Params("id")
+// GetClient handles GET /v1/clients/:client_id.
+func (h *ClientHandler) GetClient(c *fiber.Ctx) error {
+	id := c.Params("client_id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Business ID is required"))
+		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Client ID is required"))
 	}
 
-	b, err := h.svc.GetBusiness(c.Context(), id)
+	client, err := h.svc.GetClient(c.Context(), id)
 	if err != nil {
-		h.logger.Error("get business failed", "error", err)
-		return c.Status(fiber.StatusNotFound).JSON(errResp("NOT_FOUND", "Business not found"))
+		h.logger.Error("get client failed", "error", err)
+		return c.Status(fiber.StatusNotFound).JSON(errResp("NOT_FOUND", "Client not found"))
 	}
 
 	return c.JSON(fiber.Map{
-		"id":          b.ID,
-		"external_id": b.ExternalID,
-		"name":        b.Name,
-		"active":      b.Active,
-		"created_at":  b.CreatedAt,
-		"updated_at":  b.UpdatedAt,
+		"id":          client.ID,
+		"external_id": client.ExternalID,
+		"name":        client.Name,
+		"active":      client.Active,
+		"created_at":  client.CreatedAt,
+		"updated_at":  client.UpdatedAt,
 	})
 }
 
-// ListBusinesses handles GET /v1/businesses.
-func (h *BusinessHandler) ListBusinesses(c *fiber.Ctx) error {
-	businesses, err := h.svc.ListBusinesses(c.Context())
+// ListClients handles GET /v1/clients.
+func (h *ClientHandler) ListClients(c *fiber.Ctx) error {
+	clients, err := h.svc.ListClients(c.Context())
 	if err != nil {
-		h.logger.Error("list businesses failed", "error", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(errResp("INTERNAL", "Failed to list businesses"))
+		h.logger.Error("list clients failed", "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(errResp("INTERNAL", "Failed to list clients"))
 	}
 
-	items := make([]fiber.Map, 0, len(businesses))
-	for _, b := range businesses {
+	items := make([]fiber.Map, 0, len(clients))
+	for _, client := range clients {
 		items = append(items, fiber.Map{
-			"id":          b.ID,
-			"external_id": b.ExternalID,
-			"name":        b.Name,
-			"active":      b.Active,
-			"created_at":  b.CreatedAt,
+			"id":          client.ID,
+			"external_id": client.ExternalID,
+			"name":        client.Name,
+			"active":      client.Active,
+			"created_at":  client.CreatedAt,
 		})
 	}
 
-	return c.JSON(fiber.Map{"businesses": items})
+	return c.JSON(fiber.Map{"clients": items})
 }
 
 func errResp(code, message string) fiber.Map {

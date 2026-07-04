@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TABLE businesses (
+CREATE TABLE clients (
     id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
     external_id TEXT NOT NULL UNIQUE,
     name        TEXT NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE businesses (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX idx_businesses_external_id ON businesses(external_id);
+CREATE INDEX idx_clients_external_id ON clients(external_id);
 
 -- +goose Down
-DROP TABLE businesses;
+DROP TABLE clients;

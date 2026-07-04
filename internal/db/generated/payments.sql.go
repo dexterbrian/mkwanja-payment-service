@@ -18,7 +18,7 @@ UPDATE payments
 SET status = 'completed', provider_receipt = $2, provider_tx_id = $3,
     completed_at = NOW(), updated_at = NOW()
 WHERE id = $1
-RETURNING id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
+RETURNING id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
 `
 
 type CompletePaymentParams struct {
@@ -32,7 +32,7 @@ func (q *Queries) CompletePayment(ctx context.Context, arg CompletePaymentParams
 	var i Payment
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.IdempotencyKey,
 		&i.Provider,
 		&i.PaymentType,
@@ -59,15 +59,15 @@ func (q *Queries) CompletePayment(ctx context.Context, arg CompletePaymentParams
 
 const createPayment = `-- name: CreatePayment :one
 INSERT INTO payments (
-    business_id, idempotency_key, provider, payment_type, direction,
+    client_id, idempotency_key, provider, payment_type, direction,
     amount_cents, currency, phone_number, receiver_shortcode,
     reference, description, metadata
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
+RETURNING id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
 `
 
 type CreatePaymentParams struct {
-	BusinessID        string                `json:"business_id"`
+	ClientID          string                `json:"client_id"`
 	IdempotencyKey    string                `json:"idempotency_key"`
 	Provider          PaymentProvider       `json:"provider"`
 	PaymentType       PaymentType           `json:"payment_type"`
@@ -83,7 +83,7 @@ type CreatePaymentParams struct {
 
 func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (Payment, error) {
 	row := q.db.QueryRowContext(ctx, createPayment,
-		arg.BusinessID,
+		arg.ClientID,
 		arg.IdempotencyKey,
 		arg.Provider,
 		arg.PaymentType,
@@ -99,7 +99,7 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (P
 	var i Payment
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.IdempotencyKey,
 		&i.Provider,
 		&i.PaymentType,
@@ -162,7 +162,7 @@ func (q *Queries) CreatePaymentEvent(ctx context.Context, arg CreatePaymentEvent
 const failPayment = `-- name: FailPayment :one
 UPDATE payments SET status = 'failed', updated_at = NOW()
 WHERE id = $1
-RETURNING id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
+RETURNING id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
 `
 
 func (q *Queries) FailPayment(ctx context.Context, id string) (Payment, error) {
@@ -170,7 +170,7 @@ func (q *Queries) FailPayment(ctx context.Context, id string) (Payment, error) {
 	var i Payment
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.IdempotencyKey,
 		&i.Provider,
 		&i.PaymentType,
@@ -196,7 +196,7 @@ func (q *Queries) FailPayment(ctx context.Context, id string) (Payment, error) {
 }
 
 const getPaymentByID = `-- name: GetPaymentByID :one
-SELECT id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at FROM payments WHERE id = $1
+SELECT id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at FROM payments WHERE id = $1
 `
 
 func (q *Queries) GetPaymentByID(ctx context.Context, id string) (Payment, error) {
@@ -204,7 +204,7 @@ func (q *Queries) GetPaymentByID(ctx context.Context, id string) (Payment, error
 	var i Payment
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.IdempotencyKey,
 		&i.Provider,
 		&i.PaymentType,
@@ -230,20 +230,20 @@ func (q *Queries) GetPaymentByID(ctx context.Context, id string) (Payment, error
 }
 
 const getPaymentByIdempotencyKey = `-- name: GetPaymentByIdempotencyKey :one
-SELECT id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at FROM payments WHERE business_id = $1 AND idempotency_key = $2
+SELECT id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at FROM payments WHERE client_id = $1 AND idempotency_key = $2
 `
 
 type GetPaymentByIdempotencyKeyParams struct {
-	BusinessID     string `json:"business_id"`
+	ClientID       string `json:"client_id"`
 	IdempotencyKey string `json:"idempotency_key"`
 }
 
 func (q *Queries) GetPaymentByIdempotencyKey(ctx context.Context, arg GetPaymentByIdempotencyKeyParams) (Payment, error) {
-	row := q.db.QueryRowContext(ctx, getPaymentByIdempotencyKey, arg.BusinessID, arg.IdempotencyKey)
+	row := q.db.QueryRowContext(ctx, getPaymentByIdempotencyKey, arg.ClientID, arg.IdempotencyKey)
 	var i Payment
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.IdempotencyKey,
 		&i.Provider,
 		&i.PaymentType,
@@ -268,21 +268,21 @@ func (q *Queries) GetPaymentByIdempotencyKey(ctx context.Context, arg GetPayment
 	return i, err
 }
 
-const listPaymentsByBusiness = `-- name: ListPaymentsByBusiness :many
-SELECT id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at FROM payments
-WHERE business_id = $1
+const listPaymentsByClient = `-- name: ListPaymentsByClient :many
+SELECT id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at FROM payments
+WHERE client_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListPaymentsByBusinessParams struct {
-	BusinessID string `json:"business_id"`
-	Limit      int32  `json:"limit"`
-	Offset     int32  `json:"offset"`
+type ListPaymentsByClientParams struct {
+	ClientID string `json:"client_id"`
+	Limit    int32  `json:"limit"`
+	Offset   int32  `json:"offset"`
 }
 
-func (q *Queries) ListPaymentsByBusiness(ctx context.Context, arg ListPaymentsByBusinessParams) ([]Payment, error) {
-	rows, err := q.db.QueryContext(ctx, listPaymentsByBusiness, arg.BusinessID, arg.Limit, arg.Offset)
+func (q *Queries) ListPaymentsByClient(ctx context.Context, arg ListPaymentsByClientParams) ([]Payment, error) {
+	rows, err := q.db.QueryContext(ctx, listPaymentsByClient, arg.ClientID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +292,7 @@ func (q *Queries) ListPaymentsByBusiness(ctx context.Context, arg ListPaymentsBy
 		var i Payment
 		if err := rows.Scan(
 			&i.ID,
-			&i.BusinessID,
+			&i.ClientID,
 			&i.IdempotencyKey,
 			&i.Provider,
 			&i.PaymentType,
@@ -328,7 +328,7 @@ func (q *Queries) ListPaymentsByBusiness(ctx context.Context, arg ListPaymentsBy
 }
 
 const listPendingPaymentsOlderThan = `-- name: ListPendingPaymentsOlderThan :many
-SELECT id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at FROM payments
+SELECT id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at FROM payments
 WHERE status = 'pending' AND created_at < $1
 ORDER BY created_at ASC
 `
@@ -344,7 +344,7 @@ func (q *Queries) ListPendingPaymentsOlderThan(ctx context.Context, createdAt ti
 		var i Payment
 		if err := rows.Scan(
 			&i.ID,
-			&i.BusinessID,
+			&i.ClientID,
 			&i.IdempotencyKey,
 			&i.Provider,
 			&i.PaymentType,
@@ -382,7 +382,7 @@ func (q *Queries) ListPendingPaymentsOlderThan(ctx context.Context, createdAt ti
 const updatePaymentStatus = `-- name: UpdatePaymentStatus :one
 UPDATE payments SET status = $2, updated_at = NOW()
 WHERE id = $1
-RETURNING id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
+RETURNING id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
 `
 
 type UpdatePaymentStatusParams struct {
@@ -395,7 +395,7 @@ func (q *Queries) UpdatePaymentStatus(ctx context.Context, arg UpdatePaymentStat
 	var i Payment
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.IdempotencyKey,
 		&i.Provider,
 		&i.PaymentType,
@@ -423,7 +423,7 @@ func (q *Queries) UpdatePaymentStatus(ctx context.Context, arg UpdatePaymentStat
 const updateProviderRequestID = `-- name: UpdateProviderRequestID :one
 UPDATE payments SET provider_request_id = $2, provider_tx_id = $3, updated_at = NOW()
 WHERE id = $1
-RETURNING id, business_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
+RETURNING id, client_id, idempotency_key, provider, payment_type, direction, status, amount_cents, currency, phone_number, receiver_shortcode, reference, description, provider_request_id, provider_tx_id, provider_receipt, provider_raw, callback_delivered, metadata, created_at, updated_at, completed_at
 `
 
 type UpdateProviderRequestIDParams struct {
@@ -437,7 +437,7 @@ func (q *Queries) UpdateProviderRequestID(ctx context.Context, arg UpdateProvide
 	var i Payment
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.IdempotencyKey,
 		&i.Provider,
 		&i.PaymentType,

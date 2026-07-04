@@ -11,13 +11,13 @@ import (
 )
 
 const createJournalEntry = `-- name: CreateJournalEntry :one
-INSERT INTO journal (business_id, payment_id, account_id, entry_type, amount_cents, currency, description, reversal_of)
+INSERT INTO journal (client_id, payment_id, account_id, entry_type, amount_cents, currency, description, reversal_of)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, business_id, payment_id, account_id, entry_type, amount_cents, currency, description, reversal_of, created_at
+RETURNING id, client_id, payment_id, account_id, entry_type, amount_cents, currency, description, reversal_of, created_at
 `
 
 type CreateJournalEntryParams struct {
-	BusinessID  string        `json:"business_id"`
+	ClientID    string        `json:"client_id"`
 	PaymentID   string        `json:"payment_id"`
 	AccountID   string        `json:"account_id"`
 	EntryType   EntryType     `json:"entry_type"`
@@ -29,7 +29,7 @@ type CreateJournalEntryParams struct {
 
 func (q *Queries) CreateJournalEntry(ctx context.Context, arg CreateJournalEntryParams) (Journal, error) {
 	row := q.db.QueryRowContext(ctx, createJournalEntry,
-		arg.BusinessID,
+		arg.ClientID,
 		arg.PaymentID,
 		arg.AccountID,
 		arg.EntryType,
@@ -41,7 +41,7 @@ func (q *Queries) CreateJournalEntry(ctx context.Context, arg CreateJournalEntry
 	var i Journal
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.PaymentID,
 		&i.AccountID,
 		&i.EntryType,
@@ -55,11 +55,11 @@ func (q *Queries) CreateJournalEntry(ctx context.Context, arg CreateJournalEntry
 }
 
 const getTrialBalance = `-- name: GetTrialBalance :many
-SELECT business_id, account_id, total_debits_cents, total_credits_cents, net_cents FROM account_balances WHERE business_id = $1
+SELECT client_id, account_id, total_debits_cents, total_credits_cents, net_cents FROM account_balances WHERE client_id = $1
 `
 
-func (q *Queries) GetTrialBalance(ctx context.Context, businessID string) ([]AccountBalance, error) {
-	rows, err := q.db.QueryContext(ctx, getTrialBalance, businessID)
+func (q *Queries) GetTrialBalance(ctx context.Context, clientID string) ([]AccountBalance, error) {
+	rows, err := q.db.QueryContext(ctx, getTrialBalance, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (q *Queries) GetTrialBalance(ctx context.Context, businessID string) ([]Acc
 	for rows.Next() {
 		var i AccountBalance
 		if err := rows.Scan(
-			&i.BusinessID,
+			&i.ClientID,
 			&i.AccountID,
 			&i.TotalDebitsCents,
 			&i.TotalCreditsCents,
@@ -87,21 +87,21 @@ func (q *Queries) GetTrialBalance(ctx context.Context, businessID string) ([]Acc
 	return items, nil
 }
 
-const listJournalEntriesByBusiness = `-- name: ListJournalEntriesByBusiness :many
-SELECT id, business_id, payment_id, account_id, entry_type, amount_cents, currency, description, reversal_of, created_at FROM journal
-WHERE business_id = $1
+const listJournalEntriesByClient = `-- name: ListJournalEntriesByClient :many
+SELECT id, client_id, payment_id, account_id, entry_type, amount_cents, currency, description, reversal_of, created_at FROM journal
+WHERE client_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListJournalEntriesByBusinessParams struct {
-	BusinessID string `json:"business_id"`
-	Limit      int32  `json:"limit"`
-	Offset     int32  `json:"offset"`
+type ListJournalEntriesByClientParams struct {
+	ClientID string `json:"client_id"`
+	Limit    int32  `json:"limit"`
+	Offset   int32  `json:"offset"`
 }
 
-func (q *Queries) ListJournalEntriesByBusiness(ctx context.Context, arg ListJournalEntriesByBusinessParams) ([]Journal, error) {
-	rows, err := q.db.QueryContext(ctx, listJournalEntriesByBusiness, arg.BusinessID, arg.Limit, arg.Offset)
+func (q *Queries) ListJournalEntriesByClient(ctx context.Context, arg ListJournalEntriesByClientParams) ([]Journal, error) {
+	rows, err := q.db.QueryContext(ctx, listJournalEntriesByClient, arg.ClientID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (q *Queries) ListJournalEntriesByBusiness(ctx context.Context, arg ListJour
 		var i Journal
 		if err := rows.Scan(
 			&i.ID,
-			&i.BusinessID,
+			&i.ClientID,
 			&i.PaymentID,
 			&i.AccountID,
 			&i.EntryType,
@@ -135,7 +135,7 @@ func (q *Queries) ListJournalEntriesByBusiness(ctx context.Context, arg ListJour
 }
 
 const listJournalEntriesByPayment = `-- name: ListJournalEntriesByPayment :many
-SELECT id, business_id, payment_id, account_id, entry_type, amount_cents, currency, description, reversal_of, created_at FROM journal WHERE payment_id = $1 ORDER BY id
+SELECT id, client_id, payment_id, account_id, entry_type, amount_cents, currency, description, reversal_of, created_at FROM journal WHERE payment_id = $1 ORDER BY id
 `
 
 func (q *Queries) ListJournalEntriesByPayment(ctx context.Context, paymentID string) ([]Journal, error) {
@@ -149,7 +149,7 @@ func (q *Queries) ListJournalEntriesByPayment(ctx context.Context, paymentID str
 		var i Journal
 		if err := rows.Scan(
 			&i.ID,
-			&i.BusinessID,
+			&i.ClientID,
 			&i.PaymentID,
 			&i.AccountID,
 			&i.EntryType,

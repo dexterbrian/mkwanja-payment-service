@@ -25,7 +25,7 @@ const (
 
 type JournalAccount struct {
 	ID            string
-	BusinessID    string
+	ClientID      string
 	Name          string
 	AccountType   AccountType
 	NormalBalance NormalBalance
@@ -35,7 +35,7 @@ type JournalAccount struct {
 
 type JournalEntry struct {
 	ID          int64
-	BusinessID  string
+	ClientID    string
 	PaymentID   string
 	AccountID   string
 	EntryType   EntryType
@@ -47,8 +47,8 @@ type JournalEntry struct {
 }
 
 func (e *JournalEntry) Validate() error {
-	if e.BusinessID == "" {
-		return fmt.Errorf("business_id is required")
+	if e.ClientID == "" {
+		return fmt.Errorf("client_id is required")
 	}
 	if e.PaymentID == "" {
 		return fmt.Errorf("payment_id is required")

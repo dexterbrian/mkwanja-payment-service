@@ -11,14 +11,14 @@ import (
 )
 
 const createJournalAccount = `-- name: CreateJournalAccount :one
-INSERT INTO journal_accounts (id, business_id, name, account_type, normal_balance, description)
+INSERT INTO journal_accounts (id, client_id, name, account_type, normal_balance, description)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, business_id, name, account_type, normal_balance, description, created_at
+RETURNING id, client_id, name, account_type, normal_balance, description, created_at
 `
 
 type CreateJournalAccountParams struct {
 	ID            string         `json:"id"`
-	BusinessID    string         `json:"business_id"`
+	ClientID      string         `json:"client_id"`
 	Name          string         `json:"name"`
 	AccountType   AccountType    `json:"account_type"`
 	NormalBalance NormalBalance  `json:"normal_balance"`
@@ -28,7 +28,7 @@ type CreateJournalAccountParams struct {
 func (q *Queries) CreateJournalAccount(ctx context.Context, arg CreateJournalAccountParams) (JournalAccount, error) {
 	row := q.db.QueryRowContext(ctx, createJournalAccount,
 		arg.ID,
-		arg.BusinessID,
+		arg.ClientID,
 		arg.Name,
 		arg.AccountType,
 		arg.NormalBalance,
@@ -37,7 +37,7 @@ func (q *Queries) CreateJournalAccount(ctx context.Context, arg CreateJournalAcc
 	var i JournalAccount
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.Name,
 		&i.AccountType,
 		&i.NormalBalance,
@@ -48,11 +48,11 @@ func (q *Queries) CreateJournalAccount(ctx context.Context, arg CreateJournalAcc
 }
 
 const getAccountBalances = `-- name: GetAccountBalances :many
-SELECT business_id, account_id, total_debits_cents, total_credits_cents, net_cents FROM account_balances WHERE business_id = $1
+SELECT client_id, account_id, total_debits_cents, total_credits_cents, net_cents FROM account_balances WHERE client_id = $1
 `
 
-func (q *Queries) GetAccountBalances(ctx context.Context, businessID string) ([]AccountBalance, error) {
-	rows, err := q.db.QueryContext(ctx, getAccountBalances, businessID)
+func (q *Queries) GetAccountBalances(ctx context.Context, clientID string) ([]AccountBalance, error) {
+	rows, err := q.db.QueryContext(ctx, getAccountBalances, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (q *Queries) GetAccountBalances(ctx context.Context, businessID string) ([]
 	for rows.Next() {
 		var i AccountBalance
 		if err := rows.Scan(
-			&i.BusinessID,
+			&i.ClientID,
 			&i.AccountID,
 			&i.TotalDebitsCents,
 			&i.TotalCreditsCents,
@@ -81,20 +81,20 @@ func (q *Queries) GetAccountBalances(ctx context.Context, businessID string) ([]
 }
 
 const getJournalAccount = `-- name: GetJournalAccount :one
-SELECT id, business_id, name, account_type, normal_balance, description, created_at FROM journal_accounts WHERE business_id = $1 AND id = $2
+SELECT id, client_id, name, account_type, normal_balance, description, created_at FROM journal_accounts WHERE client_id = $1 AND id = $2
 `
 
 type GetJournalAccountParams struct {
-	BusinessID string `json:"business_id"`
-	ID         string `json:"id"`
+	ClientID string `json:"client_id"`
+	ID       string `json:"id"`
 }
 
 func (q *Queries) GetJournalAccount(ctx context.Context, arg GetJournalAccountParams) (JournalAccount, error) {
-	row := q.db.QueryRowContext(ctx, getJournalAccount, arg.BusinessID, arg.ID)
+	row := q.db.QueryRowContext(ctx, getJournalAccount, arg.ClientID, arg.ID)
 	var i JournalAccount
 	err := row.Scan(
 		&i.ID,
-		&i.BusinessID,
+		&i.ClientID,
 		&i.Name,
 		&i.AccountType,
 		&i.NormalBalance,
@@ -105,11 +105,11 @@ func (q *Queries) GetJournalAccount(ctx context.Context, arg GetJournalAccountPa
 }
 
 const listJournalAccounts = `-- name: ListJournalAccounts :many
-SELECT id, business_id, name, account_type, normal_balance, description, created_at FROM journal_accounts WHERE business_id = $1 ORDER BY id
+SELECT id, client_id, name, account_type, normal_balance, description, created_at FROM journal_accounts WHERE client_id = $1 ORDER BY id
 `
 
-func (q *Queries) ListJournalAccounts(ctx context.Context, businessID string) ([]JournalAccount, error) {
-	rows, err := q.db.QueryContext(ctx, listJournalAccounts, businessID)
+func (q *Queries) ListJournalAccounts(ctx context.Context, clientID string) ([]JournalAccount, error) {
+	rows, err := q.db.QueryContext(ctx, listJournalAccounts, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (q *Queries) ListJournalAccounts(ctx context.Context, businessID string) ([
 		var i JournalAccount
 		if err := rows.Scan(
 			&i.ID,
-			&i.BusinessID,
+			&i.ClientID,
 			&i.Name,
 			&i.AccountType,
 			&i.NormalBalance,

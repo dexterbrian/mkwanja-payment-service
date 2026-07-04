@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Business struct {
+type Client struct {
 	ID         string
 	ExternalID string
 	Name       string
@@ -14,9 +14,9 @@ type Business struct {
 	UpdatedAt  time.Time
 }
 
-type BusinessCredentials struct {
+type ClientCredentials struct {
 	ID                          string
-	BusinessID                  string
+	ClientID                    string
 	Shortcode                   string
 	ConsumerKeyEncrypted        string
 	ConsumerSecretEncrypted     string
@@ -37,11 +37,11 @@ type DecryptedCredentials struct {
 	SecurityCredential string
 }
 
-func (b *Business) Validate() error {
-	if b.ExternalID == "" {
+func (c *Client) Validate() error {
+	if c.ExternalID == "" {
 		return fmt.Errorf("external_id is required")
 	}
-	if b.Name == "" {
+	if c.Name == "" {
 		return fmt.Errorf("name is required")
 	}
 	return nil

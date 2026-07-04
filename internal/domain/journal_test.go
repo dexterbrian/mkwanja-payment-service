@@ -14,7 +14,7 @@ func TestJournalEntry_Validate(t *testing.T) {
 		{
 			name: "valid entry",
 			e: JournalEntry{
-				BusinessID:  "biz-1",
+				ClientID:    "client-1",
 				PaymentID:   "pay-1",
 				AccountID:   "acc-1",
 				AmountCents: 500,
@@ -23,7 +23,7 @@ func TestJournalEntry_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "missing business_id",
+			name: "missing client_id",
 			e: JournalEntry{
 				PaymentID:   "pay-1",
 				AccountID:   "acc-1",
@@ -31,12 +31,12 @@ func TestJournalEntry_Validate(t *testing.T) {
 				Description: "test entry",
 			},
 			wantErr: true,
-			errMsg:  "business_id is required",
+			errMsg:  "client_id is required",
 		},
 		{
 			name: "missing payment_id",
 			e: JournalEntry{
-				BusinessID:  "biz-1",
+				ClientID:    "client-1",
 				AccountID:   "acc-1",
 				AmountCents: 500,
 				Description: "test entry",
@@ -47,7 +47,7 @@ func TestJournalEntry_Validate(t *testing.T) {
 		{
 			name: "missing account_id",
 			e: JournalEntry{
-				BusinessID:  "biz-1",
+				ClientID:    "client-1",
 				PaymentID:   "pay-1",
 				AmountCents: 500,
 				Description: "test entry",
@@ -58,7 +58,7 @@ func TestJournalEntry_Validate(t *testing.T) {
 		{
 			name: "zero amount",
 			e: JournalEntry{
-				BusinessID:  "biz-1",
+				ClientID:    "client-1",
 				PaymentID:   "pay-1",
 				AccountID:   "acc-1",
 				AmountCents: 0,
@@ -70,7 +70,7 @@ func TestJournalEntry_Validate(t *testing.T) {
 		{
 			name: "negative amount",
 			e: JournalEntry{
-				BusinessID:  "biz-1",
+				ClientID:    "client-1",
 				PaymentID:   "pay-1",
 				AccountID:   "acc-1",
 				AmountCents: -1,
@@ -82,7 +82,7 @@ func TestJournalEntry_Validate(t *testing.T) {
 		{
 			name: "missing description",
 			e: JournalEntry{
-				BusinessID:  "biz-1",
+				ClientID:    "client-1",
 				PaymentID:   "pay-1",
 				AccountID:   "acc-1",
 				AmountCents: 500,

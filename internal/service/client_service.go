@@ -11,7 +11,7 @@ import (
 	"mkwanja-payment-svc/internal/repository"
 )
 
-// SeedAccount represents a default journal account to create per business.
+// SeedAccount represents a default journal account to create per client.
 type SeedAccount struct {
 	ID            string
 	Name          string
@@ -20,7 +20,7 @@ type SeedAccount struct {
 	Description   string
 }
 
-// defaultAccounts are seeded into every new business.
+// defaultAccounts are seeded into every new client.
 var defaultAccounts = []SeedAccount{
 	{"mpesa.till", "M-PESA till", db.AccountTypeAsset, db.NormalBalanceDebit, "M-PESA till balance"},
 	{"revenue.sales", "Sales revenue", db.AccountTypeRevenue, db.NormalBalanceCredit, "Sales revenue ex-VAT"},
@@ -32,27 +32,27 @@ var defaultAccounts = []SeedAccount{
 	{"fees.mpesa", "M-PESA charges", db.AccountTypeExpense, db.NormalBalanceDebit, "M-PESA transaction fees"},
 }
 
-// BusinessService handles business and credential management.
-type BusinessService struct {
-	repo       repository.BusinessRepo
+// ClientService handles client and credential management.
+type ClientService struct {
+	repo       repository.ClientRepo
 	encryptKey []byte
 	logger     *slog.Logger
 }
 
-// NewBusinessService creates a BusinessService.
-func NewBusinessService(repo repository.BusinessRepo, encryptKey []byte, logger *slog.Logger) *BusinessService {
+// NewClientService creates a ClientService.
+func NewClientService(repo repository.ClientRepo, encryptKey []byte, logger *slog.Logger) *ClientService {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &BusinessService{
+	return &ClientService{
 		repo:       repo,
 		encryptKey: encryptKey,
 		logger:     logger,
 	}
 }
 
-// RegisterBusinessRequest holds the input for business registration.
-type RegisterBusinessRequest struct {
+// RegisterClientRequest holds the input for client registration.
+type RegisterClientRequest struct {
 	ExternalID         string
 	Name               string
 	Shortcode          string
@@ -64,7 +64,7 @@ type RegisterBusinessRequest struct {
 }
 
 // Validate checks the request fields.
-func (r *RegisterBusinessRequest) Validate() error {
+func (r *RegisterClientRequest) Validate() error {
 	if r.ExternalID == "" {
 		return fmt.Errorf("external_id is required")
 	}
@@ -86,19 +86,19 @@ func (r *RegisterBusinessRequest) Validate() error {
 	return nil
 }
 
-// RegisterBusiness creates a business, encrypts + stores credentials, and seeds default journal accounts.
-func (s *BusinessService) RegisterBusiness(ctx context.Context, req RegisterBusinessRequest) (*db.Business, error) {
+// RegisterClient creates a client, encrypts + stores credentials, and seeds default journal accounts.
+func (s *ClientService) RegisterClient(ctx context.Context, req RegisterClientRequest) (*db.Client, error) {
 	if err := req.Validate(); err != nil {
 		return nil, fmt.Errorf("validation: %w", err)
 	}
 
-	// Create business
-	b, err := s.repo.CreateBusiness(ctx, db.CreateBusinessParams{
+	// Create client
+	c, err := s.repo.CreateClient(ctx, db.CreateClientParams{
 		ExternalID: req.ExternalID,
 		Name:       req.Name,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create business: %w", err)
+		return nil, fmt.Errorf("create client: %w", err)
 	}
 
 	// Encrypt credentials
@@ -130,7 +130,7 @@ func (s *BusinessService) RegisterBusiness(ctx context.Context, req RegisterBusi
 
 	// Store credentials
 	_, err = s.repo.CreateCredentials(ctx, db.CreateCredentialsParams{
-		BusinessID:                  b.ID,
+		ClientID:                    c.ID,
 		Shortcode:                   req.Shortcode,
 		ConsumerKeyEncrypted:        ck,
 		ConsumerSecretEncrypted:     cs,
@@ -147,7 +147,7 @@ func (s *BusinessService) RegisterBusiness(ctx context.Context, req RegisterBusi
 		desc := sql.NullString{String: acct.Description, Valid: true}
 		_, err := s.repo.CreateJournalAccount(ctx, db.CreateJournalAccountParams{
 			ID:            acct.ID,
-			BusinessID:    b.ID,
+			ClientID:      c.ID,
 			Name:          acct.Name,
 			AccountType:   acct.AccountType,
 			NormalBalance: acct.NormalBalance,
@@ -156,16 +156,16 @@ func (s *BusinessService) RegisterBusiness(ctx context.Context, req RegisterBusi
 		if err != nil {
 			s.logger.Error("failed to seed journal account",
 				"account_id", acct.ID,
-				"business_id", b.ID,
+				"client_id", c.ID,
 				"error", err)
 		}
 	}
 
-	s.logger.Info("business registered",
-		"business_id", b.ID,
-		"external_id", b.ExternalID,
-		"name", b.Name)
-	return &b, nil
+	s.logger.Info("client registered",
+		"client_id", c.ID,
+		"external_id", c.ExternalID,
+		"name", c.Name)
+	return &c, nil
 }
 
 // TestCredentialsRequest holds input for credential verification.
@@ -190,7 +190,7 @@ func (r *TestCredentialsRequest) Validate() error {
 }
 
 // TestCredentials verifies Daraja OAuth without saving credentials.
-func (s *BusinessService) TestCredentials(ctx context.Context, req TestCredentialsRequest) error {
+func (s *ClientService) TestCredentials(ctx context.Context, req TestCredentialsRequest) error {
 	if err := req.Validate(); err != nil {
 		return fmt.Errorf("validation: %w", err)
 	}
@@ -201,7 +201,7 @@ func (s *BusinessService) TestCredentials(ctx context.Context, req TestCredentia
 
 // UpdateCredentialsRequest holds input for credential update.
 type UpdateCredentialsRequest struct {
-	BusinessID         string
+	ClientID           string
 	Shortcode          string
 	ConsumerKey        string
 	ConsumerSecret     string
@@ -212,8 +212,8 @@ type UpdateCredentialsRequest struct {
 
 // Validate checks the request fields.
 func (r *UpdateCredentialsRequest) Validate() error {
-	if r.BusinessID == "" {
-		return fmt.Errorf("business_id is required")
+	if r.ClientID == "" {
+		return fmt.Errorf("client_id is required")
 	}
 	if r.ConsumerKey == "" {
 		return fmt.Errorf("consumer_key is required")
@@ -228,12 +228,12 @@ func (r *UpdateCredentialsRequest) Validate() error {
 }
 
 // UpdateCredentials deactivates old credentials and stores new encrypted ones.
-func (s *BusinessService) UpdateCredentials(ctx context.Context, req UpdateCredentialsRequest) error {
+func (s *ClientService) UpdateCredentials(ctx context.Context, req UpdateCredentialsRequest) error {
 	if err := req.Validate(); err != nil {
 		return fmt.Errorf("validation: %w", err)
 	}
 
-	if err := s.repo.DeactivateCredentials(ctx, req.BusinessID); err != nil {
+	if err := s.repo.DeactivateCredentials(ctx, req.ClientID); err != nil {
 		return fmt.Errorf("deactivate old credentials: %w", err)
 	}
 
@@ -264,7 +264,7 @@ func (s *BusinessService) UpdateCredentials(ctx context.Context, req UpdateCrede
 	}
 
 	_, err = s.repo.CreateCredentials(ctx, db.CreateCredentialsParams{
-		BusinessID:                  req.BusinessID,
+		ClientID:                    req.ClientID,
 		Shortcode:                   req.Shortcode,
 		ConsumerKeyEncrypted:        ck,
 		ConsumerSecretEncrypted:     cs,
@@ -276,35 +276,35 @@ func (s *BusinessService) UpdateCredentials(ctx context.Context, req UpdateCrede
 		return fmt.Errorf("store new credentials: %w", err)
 	}
 
-	s.logger.Info("credentials updated", "business_id", req.BusinessID)
+	s.logger.Info("credentials updated", "client_id", req.ClientID)
 	return nil
 }
 
-// DeactivateBusiness soft-deactivates a business.
-func (s *BusinessService) DeactivateBusiness(ctx context.Context, businessID string) error {
-	if businessID == "" {
-		return fmt.Errorf("business_id is required")
+// DeactivateClient soft-deactivates a client.
+func (s *ClientService) DeactivateClient(ctx context.Context, clientID string) error {
+	if clientID == "" {
+		return fmt.Errorf("client_id is required")
 	}
 
-	_, err := s.repo.DeactivateBusiness(ctx, businessID)
+	_, err := s.repo.DeactivateClient(ctx, clientID)
 	if err != nil {
-		return fmt.Errorf("deactivate business: %w", err)
+		return fmt.Errorf("deactivate client: %w", err)
 	}
 
-	s.logger.Info("business deactivated", "business_id", businessID)
+	s.logger.Info("client deactivated", "client_id", clientID)
 	return nil
 }
 
-// GetBusiness retrieves a business by ID.
-func (s *BusinessService) GetBusiness(ctx context.Context, id string) (*db.Business, error) {
-	b, err := s.repo.GetBusinessByID(ctx, id)
+// GetClient retrieves a client by ID.
+func (s *ClientService) GetClient(ctx context.Context, id string) (*db.Client, error) {
+	c, err := s.repo.GetClientByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("get business: %w", err)
+		return nil, fmt.Errorf("get client: %w", err)
 	}
-	return &b, nil
+	return &c, nil
 }
 
-// ListBusinesses lists all active businesses.
-func (s *BusinessService) ListBusinesses(ctx context.Context) ([]db.Business, error) {
-	return s.repo.ListBusinesses(ctx)
+// ListClients lists all active clients.
+func (s *ClientService) ListClients(ctx context.Context) ([]db.Client, error) {
+	return s.repo.ListClients(ctx)
 }

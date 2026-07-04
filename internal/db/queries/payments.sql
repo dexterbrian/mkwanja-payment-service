@@ -1,6 +1,6 @@
 -- name: CreatePayment :one
 INSERT INTO payments (
-    business_id, idempotency_key, provider, payment_type, direction,
+    client_id, idempotency_key, provider, payment_type, direction,
     amount_cents, currency, phone_number, receiver_shortcode,
     reference, description, metadata
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -10,7 +10,7 @@ RETURNING *;
 SELECT * FROM payments WHERE id = $1;
 
 -- name: GetPaymentByIdempotencyKey :one
-SELECT * FROM payments WHERE business_id = $1 AND idempotency_key = $2;
+SELECT * FROM payments WHERE client_id = $1 AND idempotency_key = $2;
 
 -- name: UpdatePaymentStatus :one
 UPDATE payments SET status = $2, updated_at = NOW()
@@ -34,9 +34,9 @@ UPDATE payments SET provider_request_id = $2, provider_tx_id = $3, updated_at = 
 WHERE id = $1
 RETURNING *;
 
--- name: ListPaymentsByBusiness :many
+-- name: ListPaymentsByClient :many
 SELECT * FROM payments
-WHERE business_id = $1
+WHERE client_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 

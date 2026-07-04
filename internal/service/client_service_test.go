@@ -10,63 +10,63 @@ import (
 	"mkwanja-payment-svc/internal/repository"
 )
 
-// mockBusinessRepo is a test double for repository.BusinessRepo.
-type mockBusinessRepo struct {
-	createBusinessFn        func(ctx context.Context, params db.CreateBusinessParams) (db.Business, error)
-	getBusinessByIDFn       func(ctx context.Context, id string) (db.Business, error)
-	getBusinessByExtIDFn    func(ctx context.Context, externalID string) (db.Business, error)
-	listBusinessesFn        func(ctx context.Context) ([]db.Business, error)
-	deactivateBusinessFn    func(ctx context.Context, id string) (db.Business, error)
-	createCredentialsFn     func(ctx context.Context, params db.CreateCredentialsParams) (db.BusinessCredential, error)
-	getActiveCredentialsFn  func(ctx context.Context, businessID string) (db.BusinessCredential, error)
-	deactivateCredentialsFn func(ctx context.Context, businessID string) error
-	createJournalAcctFn     func(ctx context.Context, params db.CreateJournalAccountParams) (db.JournalAccount, error)
-	listJournalAcctsFn      func(ctx context.Context, businessID string) ([]db.JournalAccount, error)
+// mockClientRepo is a test double for repository.ClientRepo.
+type mockClientRepo struct {
+	createClientFn        func(ctx context.Context, params db.CreateClientParams) (db.Client, error)
+	getClientByIDFn       func(ctx context.Context, id string) (db.Client, error)
+	getClientByExtIDFn    func(ctx context.Context, externalID string) (db.Client, error)
+	listClientsFn         func(ctx context.Context) ([]db.Client, error)
+	deactivateClientFn    func(ctx context.Context, id string) (db.Client, error)
+	createCredentialsFn   func(ctx context.Context, params db.CreateCredentialsParams) (db.ClientCredential, error)
+	getActiveCredentialsFn func(ctx context.Context, clientID string) (db.ClientCredential, error)
+	deactivateCredentialsFn func(ctx context.Context, clientID string) error
+	createJournalAcctFn   func(ctx context.Context, params db.CreateJournalAccountParams) (db.JournalAccount, error)
+	listJournalAcctsFn    func(ctx context.Context, clientID string) ([]db.JournalAccount, error)
 }
 
-func (m *mockBusinessRepo) CreateBusiness(ctx context.Context, params db.CreateBusinessParams) (db.Business, error) {
-	return m.createBusinessFn(ctx, params)
+func (m *mockClientRepo) CreateClient(ctx context.Context, params db.CreateClientParams) (db.Client, error) {
+	return m.createClientFn(ctx, params)
 }
-func (m *mockBusinessRepo) GetBusinessByID(ctx context.Context, id string) (db.Business, error) {
-	return m.getBusinessByIDFn(ctx, id)
+func (m *mockClientRepo) GetClientByID(ctx context.Context, id string) (db.Client, error) {
+	return m.getClientByIDFn(ctx, id)
 }
-func (m *mockBusinessRepo) GetBusinessByExternalID(ctx context.Context, externalID string) (db.Business, error) {
-	return m.getBusinessByExtIDFn(ctx, externalID)
+func (m *mockClientRepo) GetClientByExternalID(ctx context.Context, externalID string) (db.Client, error) {
+	return m.getClientByExtIDFn(ctx, externalID)
 }
-func (m *mockBusinessRepo) ListBusinesses(ctx context.Context) ([]db.Business, error) {
-	return m.listBusinessesFn(ctx)
+func (m *mockClientRepo) ListClients(ctx context.Context) ([]db.Client, error) {
+	return m.listClientsFn(ctx)
 }
-func (m *mockBusinessRepo) DeactivateBusiness(ctx context.Context, id string) (db.Business, error) {
-	return m.deactivateBusinessFn(ctx, id)
+func (m *mockClientRepo) DeactivateClient(ctx context.Context, id string) (db.Client, error) {
+	return m.deactivateClientFn(ctx, id)
 }
-func (m *mockBusinessRepo) CreateCredentials(ctx context.Context, params db.CreateCredentialsParams) (db.BusinessCredential, error) {
+func (m *mockClientRepo) CreateCredentials(ctx context.Context, params db.CreateCredentialsParams) (db.ClientCredential, error) {
 	return m.createCredentialsFn(ctx, params)
 }
-func (m *mockBusinessRepo) GetActiveCredentials(ctx context.Context, businessID string) (db.BusinessCredential, error) {
-	return m.getActiveCredentialsFn(ctx, businessID)
+func (m *mockClientRepo) GetActiveCredentials(ctx context.Context, clientID string) (db.ClientCredential, error) {
+	return m.getActiveCredentialsFn(ctx, clientID)
 }
-func (m *mockBusinessRepo) DeactivateCredentials(ctx context.Context, businessID string) error {
-	return m.deactivateCredentialsFn(ctx, businessID)
+func (m *mockClientRepo) DeactivateCredentials(ctx context.Context, clientID string) error {
+	return m.deactivateCredentialsFn(ctx, clientID)
 }
-func (m *mockBusinessRepo) CreateJournalAccount(ctx context.Context, params db.CreateJournalAccountParams) (db.JournalAccount, error) {
+func (m *mockClientRepo) CreateJournalAccount(ctx context.Context, params db.CreateJournalAccountParams) (db.JournalAccount, error) {
 	return m.createJournalAcctFn(ctx, params)
 }
-func (m *mockBusinessRepo) ListJournalAccounts(ctx context.Context, businessID string) ([]db.JournalAccount, error) {
-	return m.listJournalAcctsFn(ctx, businessID)
+func (m *mockClientRepo) ListJournalAccounts(ctx context.Context, clientID string) ([]db.JournalAccount, error) {
+	return m.listJournalAcctsFn(ctx, clientID)
 }
 
-var _ repository.BusinessRepo = (*mockBusinessRepo)(nil)
+var _ repository.ClientRepo = (*mockClientRepo)(nil)
 
-func TestRegisterBusinessRequest_Validate(t *testing.T) {
+func TestRegisterClientRequest_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		req     RegisterBusinessRequest
+		req     RegisterClientRequest
 		wantErr bool
 		errMsg  string
 	}{
 		{
 			name: "valid request",
-			req: RegisterBusinessRequest{
+			req: RegisterClientRequest{
 				ExternalID: "ext-001", Name: "Acme Ltd", Shortcode: "123456",
 				ConsumerKey: "key", ConsumerSecret: "secret", Passkey: "passkey",
 			},
@@ -74,13 +74,13 @@ func TestRegisterBusinessRequest_Validate(t *testing.T) {
 		},
 		{
 			name:    "empty request",
-			req:     RegisterBusinessRequest{},
+			req:     RegisterClientRequest{},
 			wantErr: true,
 			errMsg:  "external_id is required",
 		},
 		{
 			name: "missing name",
-			req: RegisterBusinessRequest{
+			req: RegisterClientRequest{
 				ExternalID: "ext-001", Shortcode: "123456",
 				ConsumerKey: "key", ConsumerSecret: "secret", Passkey: "passkey",
 			},
@@ -89,7 +89,7 @@ func TestRegisterBusinessRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing shortcode",
-			req: RegisterBusinessRequest{
+			req: RegisterClientRequest{
 				ExternalID: "ext-001", Name: "Acme Ltd",
 				ConsumerKey: "key", ConsumerSecret: "secret", Passkey: "passkey",
 			},
@@ -98,7 +98,7 @@ func TestRegisterBusinessRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing consumer_key",
-			req: RegisterBusinessRequest{
+			req: RegisterClientRequest{
 				ExternalID: "ext-001", Name: "Acme Ltd", Shortcode: "123456",
 				ConsumerSecret: "secret", Passkey: "passkey",
 			},
@@ -107,7 +107,7 @@ func TestRegisterBusinessRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing consumer_secret",
-			req: RegisterBusinessRequest{
+			req: RegisterClientRequest{
 				ExternalID: "ext-001", Name: "Acme Ltd", Shortcode: "123456",
 				ConsumerKey: "key", Passkey: "passkey",
 			},
@@ -116,7 +116,7 @@ func TestRegisterBusinessRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing passkey",
-			req: RegisterBusinessRequest{
+			req: RegisterClientRequest{
 				ExternalID: "ext-001", Name: "Acme Ltd", Shortcode: "123456",
 				ConsumerKey: "key", ConsumerSecret: "secret",
 			},
@@ -205,19 +205,19 @@ func TestUpdateCredentialsRequest_Validate(t *testing.T) {
 		{
 			name: "valid",
 			req: UpdateCredentialsRequest{
-				BusinessID: "biz-1", ConsumerKey: "k", ConsumerSecret: "s", Passkey: "p",
+				ClientID: "client-1", ConsumerKey: "k", ConsumerSecret: "s", Passkey: "p",
 			},
 			wantErr: false,
 		},
 		{
-			name:    "missing business_id",
+			name:    "missing client_id",
 			req:     UpdateCredentialsRequest{ConsumerKey: "k", ConsumerSecret: "s", Passkey: "p"},
 			wantErr: true,
-			errMsg:  "business_id is required",
+			errMsg:  "client_id is required",
 		},
 		{
 			name:    "missing consumer_key",
-			req:     UpdateCredentialsRequest{BusinessID: "biz-1", ConsumerSecret: "s", Passkey: "p"},
+			req:     UpdateCredentialsRequest{ClientID: "client-1", ConsumerSecret: "s", Passkey: "p"},
 			wantErr: true,
 			errMsg:  "consumer_key is required",
 		},
@@ -242,69 +242,69 @@ func TestUpdateCredentialsRequest_Validate(t *testing.T) {
 	}
 }
 
-func TestBusinessService_RegisterBusiness(t *testing.T) {
+func TestClientService_RegisterClient(t *testing.T) {
 	encryptKey := make([]byte, 32)
 
 	tests := []struct {
 		name       string
-		req        RegisterBusinessRequest
-		mockSetup  func(m *mockBusinessRepo)
+		req        RegisterClientRequest
+		mockSetup  func(m *mockClientRepo)
 		wantErr    bool
 		errContain string
-		wantBizID  string
+		wantID     string
 	}{
 		{
 			name: "validation fails — missing external_id",
-			req: RegisterBusinessRequest{
+			req: RegisterClientRequest{
 				Name: "Acme", Shortcode: "123", ConsumerKey: "k", ConsumerSecret: "s", Passkey: "p",
 			},
-			mockSetup:  func(m *mockBusinessRepo) {},
+			mockSetup:  func(m *mockClientRepo) {},
 			wantErr:    true,
 			errContain: "validation",
 		},
 		{
-			name: "create business succeeds",
-			req: RegisterBusinessRequest{
+			name: "create client succeeds",
+			req: RegisterClientRequest{
 				ExternalID: "ext-001", Name: "Acme Ltd", Shortcode: "123456",
 				ConsumerKey: "key", ConsumerSecret: "secret", Passkey: "passkey",
 			},
-			mockSetup: func(m *mockBusinessRepo) {
-				m.createBusinessFn = func(ctx context.Context, params db.CreateBusinessParams) (db.Business, error) {
-					return db.Business{ID: "biz-001", ExternalID: params.ExternalID, Name: params.Name, Active: true}, nil
+			mockSetup: func(m *mockClientRepo) {
+				m.createClientFn = func(ctx context.Context, params db.CreateClientParams) (db.Client, error) {
+					return db.Client{ID: "client-001", ExternalID: params.ExternalID, Name: params.Name, Active: true}, nil
 				}
-				m.createCredentialsFn = func(ctx context.Context, params db.CreateCredentialsParams) (db.BusinessCredential, error) {
-					return db.BusinessCredential{ID: "cred-001", BusinessID: params.BusinessID, IsActive: true}, nil
+				m.createCredentialsFn = func(ctx context.Context, params db.CreateCredentialsParams) (db.ClientCredential, error) {
+					return db.ClientCredential{ID: "cred-001", ClientID: params.ClientID, IsActive: true}, nil
 				}
 				m.createJournalAcctFn = func(ctx context.Context, params db.CreateJournalAccountParams) (db.JournalAccount, error) {
-					return db.JournalAccount{ID: params.ID, BusinessID: params.BusinessID, Name: params.Name}, nil
+					return db.JournalAccount{ID: params.ID, ClientID: params.ClientID, Name: params.Name}, nil
 				}
 			},
-			wantErr:   false,
-			wantBizID: "biz-001",
+			wantErr: false,
+			wantID:  "client-001",
 		},
 		{
-			name: "create business fails",
-			req: RegisterBusinessRequest{
+			name: "create client fails",
+			req: RegisterClientRequest{
 				ExternalID: "ext-001", Name: "Acme Ltd", Shortcode: "123456",
 				ConsumerKey: "key", ConsumerSecret: "secret", Passkey: "passkey",
 			},
-			mockSetup: func(m *mockBusinessRepo) {
-				m.createBusinessFn = func(ctx context.Context, params db.CreateBusinessParams) (db.Business, error) {
-					return db.Business{}, context.DeadlineExceeded
+			mockSetup: func(m *mockClientRepo) {
+				m.createClientFn = func(ctx context.Context, params db.CreateClientParams) (db.Client, error) {
+					return db.Client{}, context.DeadlineExceeded
 				}
 			},
 			wantErr:    true,
-			errContain: "create business",
+			errContain: "create client",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mock := &mockBusinessRepo{}
+			mock := &mockClientRepo{}
 			tt.mockSetup(mock)
 
-			svc := NewBusinessService(mock, encryptKey, nil)
-			biz, err := svc.RegisterBusiness(context.Background(), tt.req)
+			svc := NewClientService(mock, encryptKey, nil)
+			client, err := svc.RegisterClient(context.Background(), tt.req)
 
 			if tt.wantErr {
 				if err == nil {
@@ -317,36 +317,36 @@ func TestBusinessService_RegisterBusiness(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				if biz.ID != tt.wantBizID {
-					t.Fatalf("expected biz ID %q, got %q", tt.wantBizID, biz.ID)
+				if client.ID != tt.wantID {
+					t.Fatalf("expected client ID %q, got %q", tt.wantID, client.ID)
 				}
 			}
 		})
 	}
 }
 
-func TestBusinessService_DeactivateBusiness(t *testing.T) {
+func TestClientService_DeactivateClient(t *testing.T) {
 	encryptKey := make([]byte, 32)
 
 	tests := []struct {
 		name       string
-		bizID      string
-		mockFn     func(ctx context.Context, id string) (db.Business, error)
+		clientID   string
+		mockFn     func(ctx context.Context, id string) (db.Client, error)
 		wantErr    bool
 		errContain string
 	}{
 		{
-			name:       "empty business_id",
-			bizID:      "",
+			name:       "empty client_id",
+			clientID:   "",
 			mockFn:     nil,
 			wantErr:    true,
-			errContain: "business_id is required",
+			errContain: "client_id is required",
 		},
 		{
 			name:  "successful deactivation",
-			bizID: "biz-001",
-			mockFn: func(ctx context.Context, id string) (db.Business, error) {
-				return db.Business{ID: id, Active: false}, nil
+			clientID: "client-001",
+			mockFn: func(ctx context.Context, id string) (db.Client, error) {
+				return db.Client{ID: id, Active: false}, nil
 			},
 			wantErr: false,
 		},
@@ -354,11 +354,11 @@ func TestBusinessService_DeactivateBusiness(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mock := &mockBusinessRepo{
-				deactivateBusinessFn: tt.mockFn,
+			mock := &mockClientRepo{
+				deactivateClientFn: tt.mockFn,
 			}
-			svc := NewBusinessService(mock, encryptKey, nil)
-			err := svc.DeactivateBusiness(context.Background(), tt.bizID)
+			svc := NewClientService(mock, encryptKey, nil)
+			err := svc.DeactivateClient(context.Background(), tt.clientID)
 
 			if tt.wantErr {
 				if err == nil {
@@ -376,30 +376,30 @@ func TestBusinessService_DeactivateBusiness(t *testing.T) {
 	}
 }
 
-func TestBusinessService_GetBusiness(t *testing.T) {
+func TestClientService_GetClient(t *testing.T) {
 	encryptKey := make([]byte, 32)
 
 	tests := []struct {
 		name    string
 		id      string
-		mockFn  func(ctx context.Context, id string) (db.Business, error)
+		mockFn  func(ctx context.Context, id string) (db.Client, error)
 		wantErr bool
 		wantID  string
 	}{
 		{
 			name: "found",
-			id:   "biz-001",
-			mockFn: func(ctx context.Context, id string) (db.Business, error) {
-				return db.Business{ID: id, Name: "Acme"}, nil
+			id:   "client-001",
+			mockFn: func(ctx context.Context, id string) (db.Client, error) {
+				return db.Client{ID: id, Name: "Acme"}, nil
 			},
 			wantErr: false,
-			wantID:  "biz-001",
+			wantID:  "client-001",
 		},
 		{
 			name: "not found",
-			id:   "biz-999",
-			mockFn: func(ctx context.Context, id string) (db.Business, error) {
-				return db.Business{}, sql.ErrNoRows
+			id:   "client-999",
+			mockFn: func(ctx context.Context, id string) (db.Client, error) {
+				return db.Client{}, sql.ErrNoRows
 			},
 			wantErr: true,
 		},
@@ -407,11 +407,11 @@ func TestBusinessService_GetBusiness(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mock := &mockBusinessRepo{
-				getBusinessByIDFn: tt.mockFn,
+			mock := &mockClientRepo{
+				getClientByIDFn: tt.mockFn,
 			}
-			svc := NewBusinessService(mock, encryptKey, nil)
-			biz, err := svc.GetBusiness(context.Background(), tt.id)
+			svc := NewClientService(mock, encryptKey, nil)
+			client, err := svc.GetClient(context.Background(), tt.id)
 
 			if tt.wantErr {
 				if err == nil {
@@ -421,8 +421,8 @@ func TestBusinessService_GetBusiness(t *testing.T) {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				if biz.ID != tt.wantID {
-					t.Fatalf("expected ID %q, got %q", tt.wantID, biz.ID)
+				if client.ID != tt.wantID {
+					t.Fatalf("expected ID %q, got %q", tt.wantID, client.ID)
 				}
 			}
 		})

@@ -6,7 +6,7 @@ CREATE TYPE payment_status    AS ENUM ('pending', 'processing', 'completed', 'fa
 
 CREATE TABLE payments (
     id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
-    business_id         TEXT NOT NULL REFERENCES businesses(id),
+    client_id           TEXT NOT NULL REFERENCES clients(id),
     idempotency_key     TEXT NOT NULL,
     provider            payment_provider NOT NULL DEFAULT 'mpesa',
     payment_type        payment_type NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE payments (
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at        TIMESTAMPTZ,
-    UNIQUE(business_id, idempotency_key)
+    UNIQUE(client_id, idempotency_key)
 );
 
 CREATE TABLE payment_events (
@@ -43,7 +43,7 @@ CREATE TABLE payment_events (
 CREATE RULE no_update_payment_events AS ON UPDATE TO payment_events DO INSTEAD NOTHING;
 CREATE RULE no_delete_payment_events AS ON DELETE TO payment_events DO INSTEAD NOTHING;
 
-CREATE INDEX idx_payments_business_id ON payments(business_id);
+CREATE INDEX idx_payments_client_id ON payments(client_id);
 CREATE INDEX idx_payments_status      ON payments(status);
 CREATE INDEX idx_payments_provider_tx ON payments(provider_tx_id);
 CREATE INDEX idx_payments_created_at  ON payments(created_at DESC);
