@@ -23,6 +23,7 @@ type Dependencies struct {
 	DBRegistry       *db.Registry
 	EncryptKey       []byte
 	Logger           *slog.Logger
+	OperatorClientID string
 }
 
 // Setup registers all routes and middleware on the given Fiber app.
@@ -44,8 +45,9 @@ func Setup(app *fiber.App, deps Dependencies) {
 
 	// Client handler with lazy service creation per request
 	clientHandler := &clientHandlerAdapter{
-		encryptKey: deps.EncryptKey,
-		logger:     deps.Logger,
+		encryptKey:       deps.EncryptKey,
+		logger:           deps.Logger,
+		operatorClientID: deps.OperatorClientID,
 	}
 
 	// Client CRUD
@@ -55,12 +57,16 @@ func Setup(app *fiber.App, deps Dependencies) {
 	api.Delete("/clients/:client_id", clientHandler.deactivateClient)
 	api.Get("/clients/:client_id", clientHandler.getClient)
 	api.Get("/clients", clientHandler.listClients)
+
+	// Operator admin endpoint
+	api.Put("/admin/operator/credentials", middleware.Idempotency(), clientHandler.updateOperatorCredentials)
 }
 
 // clientHandlerAdapter creates the service per-request from the pool in context.
 type clientHandlerAdapter struct {
-	encryptKey []byte
-	logger     *slog.Logger
+	encryptKey       []byte
+	logger           *slog.Logger
+	operatorClientID string
 }
 
 func (a *clientHandlerAdapter) serviceFromCtx(c *fiber.Ctx) *service.ClientService {
@@ -107,4 +113,10 @@ func (a *clientHandlerAdapter) listClients(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
 	h := handler.NewClientHandler(svc, a.logger)
 	return h.ListClients(c)
+}
+
+func (a *clientHandlerAdapter) updateOperatorCredentials(c *fiber.Ctx) error {
+	svc := a.serviceFromCtx(c)
+	h := handler.NewClientHandler(svc, a.logger)
+	return h.UpdateOperatorCredentials(c, a.operatorClientID)
 }

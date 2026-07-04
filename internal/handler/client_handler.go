@@ -129,6 +129,33 @@ func (h *ClientHandler) UpdateCredentials(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok", "message": "Credentials updated"})
 }
 
+// UpdateOperatorCredentials handles PUT /v1/admin/operator/credentials.
+func (h *ClientHandler) UpdateOperatorCredentials(c *fiber.Ctx, operatorClientID string) error {
+	if operatorClientID == "" {
+		return c.Status(fiber.StatusNotFound).JSON(errResp("NOT_CONFIGURED", "Operator client is not configured"))
+	}
+
+	var req UpdateCredentialsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(errResp("INVALID_REQUEST", "Invalid JSON body"))
+	}
+
+	if err := h.svc.UpdateCredentials(c.Context(), service.UpdateCredentialsRequest{
+		ClientID:           operatorClientID,
+		Shortcode:          req.Shortcode,
+		ConsumerKey:        req.ConsumerKey,
+		ConsumerSecret:     req.ConsumerSecret,
+		Passkey:            req.Passkey,
+		InitiatorName:      req.InitiatorName,
+		SecurityCredential: req.SecurityCredential,
+	}); err != nil {
+		h.logger.Error("update operator credentials failed", "error", err)
+		return c.Status(fiber.StatusBadRequest).JSON(errResp("UPDATE_FAILED", err.Error()))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok", "message": "Operator credentials updated"})
+}
+
 // DeactivateClient handles DELETE /v1/clients/:client_id.
 func (h *ClientHandler) DeactivateClient(c *fiber.Ctx) error {
 	clientID := c.Params("client_id")

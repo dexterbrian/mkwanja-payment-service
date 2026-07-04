@@ -15,7 +15,9 @@ import (
 	"mkwanja-payment-svc/internal/crypto"
 	"mkwanja-payment-svc/internal/db"
 	"mkwanja-payment-svc/internal/handler"
+	"mkwanja-payment-svc/internal/repository"
 	"mkwanja-payment-svc/internal/router"
+	"mkwanja-payment-svc/internal/service"
 )
 
 func main() {
@@ -36,7 +38,14 @@ func main() {
 	rdb := redis.NewClient(opts)
 	defer rdb.Close()
 
-	// DB registry — register one pool per consumer
+	// Parse encryption key
+	encryptKey, err := crypto.ParseHexKey(cfg.CredentialEncryptionKey)
+	if err != nil {
+		slog.Error("invalid CREDENTIAL_ENCRYPTION_KEY", "error", err)
+		os.Exit(1)
+	}
+
+	// DB registry — register one pool per consumer, then migrate and optionally seed operator
 	registry := db.NewRegistry()
 	ctx := context.Background()
 	for _, c := range cfg.Consumers {
@@ -45,13 +54,34 @@ func main() {
 			os.Exit(1)
 		}
 		slog.Info("consumer db registered", "consumer", c.ID)
+
+		pool, err := registry.Get(c.ID)
+		if err != nil {
+			slog.Error("db pool unavailable after registration", "consumer", c.ID, "error", err)
+			os.Exit(1)
+		}
+
+		if err := db.MigrateConsumerDB(ctx, pool); err != nil {
+			slog.Error("db migration failed", "consumer", c.ID, "error", err)
+			os.Exit(1)
+		}
+		slog.Info("consumer db migrated", "consumer", c.ID)
 	}
 
-	// Parse encryption key
-	encryptKey, err := crypto.ParseHexKey(cfg.CredentialEncryptionKey)
-	if err != nil {
-		slog.Error("invalid CREDENTIAL_ENCRYPTION_KEY", "error", err)
-		os.Exit(1)
+	// Seed operator client if configured
+	if cfg.OperatorClientID != "" {
+		operatorPool, err := registry.Get(cfg.OperatorConsumerID)
+		if err != nil {
+			slog.Error("operator consumer db not found", "consumer", cfg.OperatorConsumerID, "error", err)
+			os.Exit(1)
+		}
+		repo := repository.NewPgxClientRepoFromPool(operatorPool)
+		svc := service.NewClientService(repo, encryptKey, slog.Default())
+
+		if _, err := svc.EnsureOperatorClient(ctx, cfg.OperatorClientID, cfg.OperatorClientName); err != nil {
+			slog.Error("operator client seeding failed", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	// Consumer registry
@@ -75,6 +105,7 @@ func main() {
 		DBRegistry:       registry,
 		EncryptKey:       encryptKey,
 		Logger:           slog.Default(),
+		OperatorClientID: cfg.OperatorClientID,
 	})
 
 	// Graceful shutdown

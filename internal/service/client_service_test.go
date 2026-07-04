@@ -325,6 +325,92 @@ func TestClientService_RegisterClient(t *testing.T) {
 	}
 }
 
+func TestClientService_EnsureOperatorClient(t *testing.T) {
+	encryptKey := make([]byte, 32)
+
+	tests := []struct {
+		name           string
+		clientID       string
+		operatorName   string
+		mockSetup      func(m *mockClientRepo)
+		wantErr        bool
+		errContain     string
+		wantExternalID string
+	}{
+		{
+			name:         "creates operator when not exists",
+			clientID:     "operator-001",
+			operatorName: "Dexter Operator",
+			mockSetup: func(m *mockClientRepo) {
+				m.getClientByExtIDFn = func(ctx context.Context, externalID string) (db.Client, error) {
+					return db.Client{}, sql.ErrNoRows
+				}
+				m.createClientFn = func(ctx context.Context, params db.CreateClientParams) (db.Client, error) {
+					return db.Client{ID: "client-op-001", ExternalID: params.ExternalID, Name: params.Name, Active: true}, nil
+				}
+				m.createCredentialsFn = func(ctx context.Context, params db.CreateCredentialsParams) (db.ClientCredential, error) {
+					return db.ClientCredential{ID: "cred-op-001", ClientID: params.ClientID, IsActive: true}, nil
+				}
+				m.createJournalAcctFn = func(ctx context.Context, params db.CreateJournalAccountParams) (db.JournalAccount, error) {
+					return db.JournalAccount{ID: params.ID, ClientID: params.ClientID, Name: params.Name}, nil
+				}
+			},
+			wantErr:        false,
+			wantExternalID: "operator-001",
+		},
+		{
+			name:         "returns existing operator without creating",
+			clientID:     "operator-001",
+			operatorName: "Dexter Operator",
+			mockSetup: func(m *mockClientRepo) {
+				m.getClientByExtIDFn = func(ctx context.Context, externalID string) (db.Client, error) {
+					return db.Client{ID: "client-op-001", ExternalID: externalID, Name: "Dexter Operator", Active: true}, nil
+				}
+				m.createClientFn = func(ctx context.Context, params db.CreateClientParams) (db.Client, error) {
+					t.Fatal("CreateClient should not be called when operator exists")
+					return db.Client{}, nil
+				}
+			},
+			wantErr:        false,
+			wantExternalID: "operator-001",
+		},
+		{
+			name:         "missing client_id",
+			clientID:     "",
+			operatorName: "Dexter Operator",
+			mockSetup:      func(m *mockClientRepo) {},
+			wantErr:        true,
+			errContain:     "operator client_id is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &mockClientRepo{}
+			tt.mockSetup(mock)
+
+			svc := NewClientService(mock, encryptKey, nil)
+			client, err := svc.EnsureOperatorClient(context.Background(), tt.clientID, tt.operatorName)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error containing %q, got nil", tt.errContain)
+				}
+				if !strings.Contains(err.Error(), tt.errContain) {
+					t.Fatalf("expected error containing %q, got %q", tt.errContain, err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if client.ExternalID != tt.wantExternalID {
+				t.Fatalf("expected external ID %q, got %q", tt.wantExternalID, client.ExternalID)
+			}
+		})
+	}
+}
+
 func TestClientService_DeactivateClient(t *testing.T) {
 	encryptKey := make([]byte, 32)
 

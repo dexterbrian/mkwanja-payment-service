@@ -28,6 +28,10 @@ type Config struct {
 	DarajaBaseURL     string `envconfig:"DARAJA_BASE_URL" required:"true"`
 	DarajaCallbackURL string `envconfig:"DARAJA_CALLBACK_URL" required:"true"`
 
+	OperatorClientID   string `envconfig:"OPERATOR_CLIENT_ID" default:""`
+	OperatorConsumerID string `envconfig:"OPERATOR_CONSUMER_ID" default:"mkwanja"`
+	OperatorClientName string `envconfig:"OPERATOR_CLIENT_NAME" default:"Dexter Operator"`
+
 	Consumers []ConsumerConfig
 }
 
@@ -41,6 +45,9 @@ func Load() (*Config, error) {
 		CredentialEncryptionKey: mustEnv("CREDENTIAL_ENCRYPTION_KEY"),
 		DarajaBaseURL:           mustEnv("DARAJA_BASE_URL"),
 		DarajaCallbackURL:       mustEnv("DARAJA_CALLBACK_URL"),
+		OperatorClientID:        getEnv("OPERATOR_CLIENT_ID", ""),
+		OperatorConsumerID:      getEnv("OPERATOR_CONSUMER_ID", "mkwanja"),
+		OperatorClientName:      getEnv("OPERATOR_CLIENT_NAME", "Dexter Operator"),
 	}
 
 	cfg.Consumers = loadConsumers()

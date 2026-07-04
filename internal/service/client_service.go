@@ -168,6 +168,85 @@ func (s *ClientService) RegisterClient(ctx context.Context, req RegisterClientRe
 	return &c, nil
 }
 
+// EnsureOperatorClient ensures the operator client exists for the given consumer.
+// It is idempotent: if the client already exists, the existing client is returned.
+// On creation, empty credentials are stored and default journal accounts are seeded.
+func (s *ClientService) EnsureOperatorClient(ctx context.Context, clientID, name string) (*db.Client, error) {
+	if clientID == "" {
+		return nil, fmt.Errorf("operator client_id is required")
+	}
+	if name == "" {
+		name = "Dexter Operator"
+	}
+
+	existing, err := s.repo.GetClientByExternalID(ctx, clientID)
+	if err == nil {
+		s.logger.Info("operator client already exists", "client_id", existing.ID, "external_id", existing.ExternalID)
+		return &existing, nil
+	}
+
+	// Create the operator client
+	c, err := s.repo.CreateClient(ctx, db.CreateClientParams{
+		ExternalID: clientID,
+		Name:       name,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create operator client: %w", err)
+	}
+
+	// Store empty credentials (encrypted empty strings)
+	ck, err := crypto.Encrypt(s.encryptKey, "")
+	if err != nil {
+		return nil, fmt.Errorf("encrypt empty consumer_key: %w", err)
+	}
+	cs, err := crypto.Encrypt(s.encryptKey, "")
+	if err != nil {
+		return nil, fmt.Errorf("encrypt empty consumer_secret: %w", err)
+	}
+	pk, err := crypto.Encrypt(s.encryptKey, "")
+	if err != nil {
+		return nil, fmt.Errorf("encrypt empty passkey: %w", err)
+	}
+
+	_, err = s.repo.CreateCredentials(ctx, db.CreateCredentialsParams{
+		ClientID:                    c.ID,
+		Shortcode:                   "",
+		ConsumerKeyEncrypted:        ck,
+		ConsumerSecretEncrypted:     cs,
+		PasskeyEncrypted:            pk,
+		InitiatorName:               sql.NullString{},
+		SecurityCredentialEncrypted: sql.NullString{},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("store operator credentials: %w", err)
+	}
+
+	// Seed default journal accounts
+	for _, acct := range defaultAccounts {
+		desc := sql.NullString{String: acct.Description, Valid: true}
+		_, err := s.repo.CreateJournalAccount(ctx, db.CreateJournalAccountParams{
+			ID:            acct.ID,
+			ClientID:      c.ID,
+			Name:          acct.Name,
+			AccountType:   acct.AccountType,
+			NormalBalance: acct.NormalBalance,
+			Description:   desc,
+		})
+		if err != nil {
+			s.logger.Error("failed to seed operator journal account",
+				"account_id", acct.ID,
+				"client_id", c.ID,
+				"error", err)
+		}
+	}
+
+	s.logger.Info("operator client seeded",
+		"client_id", c.ID,
+		"external_id", c.ExternalID,
+		"name", c.Name)
+	return &c, nil
+}
+
 // TestCredentialsRequest holds input for credential verification.
 type TestCredentialsRequest struct {
 	ConsumerKey    string

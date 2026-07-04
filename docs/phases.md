@@ -51,23 +51,23 @@
 
 ### 3.8 Operator-as-client
 
-- [ ] 3.8.1 Seed an operator `client_id` (e.g., via env var `OPERATOR_CLIENT_ID`) on the operator's chosen consumer DB on startup if not present
-- [ ] 3.8.2 Provide operator-facing endpoint or admin path to update operator credentials (`PUT /v1/clients/:operator_client_id/credentials`)
-- [ ] 3.8.3 Ensure operator client can receive STK Push / C2B payments just like any other client
+- [x] 3.8.1 Seed an operator `client_id` (e.g., via env var `OPERATOR_CLIENT_ID`) on the operator's chosen consumer DB on startup if not present
+- [x] 3.8.2 Provide operator-facing endpoint or admin path to update operator credentials (`PUT /v1/admin/operator/credentials`)
+- [x] 3.8.3 Ensure operator client can receive STK Push / C2B payments just like any other client
 
 ---
 
 ## Phase 4 — Daraja Client
 *Goal: Per-client Daraja client; OAuth token caching; all M-PESA API methods.*
 
-- [ ] 4.1 Write `internal/daraja/auth.go` — fetch + cache OAuth token in Redis (`daraja_token:{consumer}:{client_id}`)
-- [ ] 4.2 Write `internal/daraja/client.go` — `NewClient`, `TokenCache` interface
-- [ ] 4.3 Write `internal/daraja/stk.go` — `InitiateSTKPush`, `STKCallbackBody` parse
-- [ ] 4.4 Write `internal/daraja/b2c.go` — `InitiateB2C`
-- [ ] 4.5 Write `internal/daraja/b2b.go` — `InitiateB2B` (BusinessPayBill + BusinessBuyGoods)
-- [ ] 4.6 Write `internal/daraja/c2b.go` — C2B register URLs + validation/confirmation structs
-- [ ] 4.7 Write `internal/daraja/webhook.go` — per-consumer webhook body types + signature/IP verification helpers
-- [ ] 4.8 Write table-driven unit tests (mock HTTP server for Daraja responses)
+- [x] 4.1 Write `internal/daraja/auth.go` — fetch + cache OAuth token in Redis (`daraja_token:{consumer}:{client_id}`)
+- [x] 4.2 Write `internal/daraja/client.go` — `NewClient`, `TokenCache` interface
+- [x] 4.3 Write `internal/daraja/stk.go` — `InitiateSTKPush`, `STKCallbackBody` parse
+- [x] 4.4 Write `internal/daraja/b2c.go` — `InitiateB2C`
+- [x] 4.5 Write `internal/daraja/b2b.go` — `InitiateB2B` (BusinessPayBill + BusinessBuyGoods)
+- [x] 4.6 Write `internal/daraja/c2b.go` — C2B register URLs + validation/confirmation structs
+- [x] 4.7 Write `internal/daraja/webhook.go` — per-consumer webhook body types + signature/IP verification helpers
+- [x] 4.8 Write table-driven unit tests (mock HTTP server for Daraja responses)
 
 ---
 
