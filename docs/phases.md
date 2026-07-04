@@ -22,45 +22,51 @@
 ## Phase 2 — Database Migrations & sqlc
 *Goal: All SQL schemas defined; sqlc generates clean Go code.*
 
-- [x] 2.1 Write `001_businesses.sql`
-- [x] 2.2 Write `002_credentials.sql`
+- [x] 2.1 Write `001_clients.sql`
+- [x] 2.2 Write `002_client_credentials.sql`
 - [x] 2.3 Write `003_payments.sql` (enums, payments table, payment_events, rules, indexes)
 - [x] 2.4 Write `004_journal_accounts.sql`
 - [x] 2.5 Write `005_journal.sql` (journal table, rules, indexes, `account_balances` view)
-- [x] 2.6 Write sqlc query files: `businesses.sql`, `credentials.sql`, `payments.sql`, `journal_accounts.sql`, `journal.sql`
+- [x] 2.6 Write sqlc query files: `clients.sql`, `client_credentials.sql`, `payments.sql`, `journal_accounts.sql`, `journal.sql`
 - [x] 2.7 Run `sqlc generate` — verify zero errors, generated code compiles
-- [x] 2.8 Write domain types: `internal/domain/business.go`, `payment.go`, `journal.go`
+- [x] 2.8 Write domain types: `internal/domain/client.go`, `payment.go`, `journal.go`
 - [x] 2.9 Write unit tests for domain logic (validation etc.)
 
 ---
 
-## Phase 3 — Business & Credential Management
-*Goal: Register business, store encrypted credentials, update, deactivate.*
+## Phase 3 — Client & Credential Management
+*Goal: Register any client (business, individual, church, or the mkwanja operator itself), store encrypted credentials, update, deactivate.*
 
-- [x] 3.1 Write `internal/repository/business_repo.go` (interface + pgx implementation)
-- [x] 3.2 Write `internal/service/business_service.go` — register business + seed default journal accounts
-- [x] 3.3 Write `internal/handler/business_handler.go`
-  - `POST /v1/businesses` — register business + encrypt + store credentials
-  - `POST /v1/businesses/test-credentials` — verify Daraja OAuth without saving
-  - `PUT /v1/businesses/:id/credentials` — update credentials
-  - `DELETE /v1/businesses/:id` — soft-deactivate
+- [x] 3.1 Write `internal/repository/client_repo.go` (interface + pgx implementation)
+- [x] 3.2 Write `internal/service/client_service.go` — register client + seed default journal accounts
+- [x] 3.3 Write `internal/handler/client_handler.go`
+  - `POST /v1/clients` — register client + encrypt + store credentials
+  - `POST /v1/clients/test-credentials` — verify Daraja OAuth without saving
+  - `PUT /v1/clients/:client_id/credentials` — update credentials
+  - `DELETE /v1/clients/:client_id` — soft-deactivate
 - [x] 3.4 Write `internal/middleware/auth.go` (`X-Service-Secret` validation) + `consumer.go` (resolve pool)
 - [x] 3.5 Write `internal/middleware/idempotency.go`
-- [x] 3.6 Write `internal/router/router.go` — register all middleware + business routes
-- [x] 3.7 Write table-driven tests for business service and handler
+- [x] 3.6 Write `internal/router/router.go` — register all middleware + client routes
+- [x] 3.7 Write table-driven tests for client service and handler
+
+### 3.8 Operator-as-client
+
+- [ ] 3.8.1 Seed an operator `client_id` (e.g., via env var `OPERATOR_CLIENT_ID`) on mkwanja consumer DB on startup if not present
+- [ ] 3.8.2 Provide operator-facing endpoint or admin path to update operator credentials (`PUT /v1/clients/:operator_client_id/credentials`)
+- [ ] 3.8.3 Ensure operator client can receive STK Push / C2B payments just like any other client
 
 ---
 
 ## Phase 4 — Daraja Client
-*Goal: Per-business Daraja client; OAuth token caching; all M-PESA API methods.*
+*Goal: Per-client Daraja client; OAuth token caching; all M-PESA API methods.*
 
-- [ ] 4.1 Write `internal/daraja/auth.go` — fetch + cache OAuth token in Redis (`daraja_token:{consumer}:{biz}`)
+- [ ] 4.1 Write `internal/daraja/auth.go` — fetch + cache OAuth token in Redis (`daraja_token:{consumer}:{client_id}`)
 - [ ] 4.2 Write `internal/daraja/client.go` — `NewClient`, `TokenCache` interface
 - [ ] 4.3 Write `internal/daraja/stk.go` — `InitiateSTKPush`, `STKCallbackBody` parse
 - [ ] 4.4 Write `internal/daraja/b2c.go` — `InitiateB2C`
 - [ ] 4.5 Write `internal/daraja/b2b.go` — `InitiateB2B` (BusinessPayBill + BusinessBuyGoods)
 - [ ] 4.6 Write `internal/daraja/c2b.go` — C2B register URLs + validation/confirmation structs
-- [ ] 4.7 Write `internal/daraja/webhook.go` — shared webhook body types + signature/IP verification helpers
+- [ ] 4.7 Write `internal/daraja/webhook.go` — per-consumer webhook body types + signature/IP verification helpers
 - [ ] 4.8 Write table-driven unit tests (mock HTTP server for Daraja responses)
 
 ---
@@ -82,7 +88,7 @@
   - `POST /v1/payments/b2b`
   - `GET /v1/payments/:id`
   - `GET /v1/payments`
-- [ ] 5.6 Write `internal/handler/webhook_handler.go` — enqueue raw body; always return 200
+- [ ] 5.6 Write `internal/handler/webhook_handler.go` — per-consumer webhook paths (`/webhooks/mpesa/stk/:consumer_id`, etc.); enqueue raw body; always return 200
 - [ ] 5.7 Register payment + webhook routes in router
 - [ ] 5.8 Write table-driven tests for payment service (mock Daraja client)
 
@@ -93,12 +99,12 @@
 
 - [ ] 6.1 Write `internal/repository/journal_repo.go`
 - [ ] 6.2 Write `internal/service/journal_service.go`
-  - `SeedDefaultAccounts` (called at business registration)
+  - `SeedDefaultAccounts` (called at client registration)
   - `WriteInboundEntries` (STK Push / C2B confirmed)
   - `WriteOutboundEntries` (B2C / B2B)
   - `writeBalancedEntries` (verify debits = credits → single tx commit)
 - [ ] 6.3 Write `internal/handler/ledger_handler.go`
-  - `GET /v1/ledger` — journal entries for a business
+  - `GET /v1/ledger` — journal entries for a client
   - `GET /v1/ledger/balance` — account balances
   - `GET /v1/ledger/trial-balance` — full trial balance
 - [ ] 6.4 Register ledger routes in router
@@ -112,7 +118,7 @@
 
 - [ ] 7.1 Write `internal/service/reconciliation_service.go`
   - Cron every 5 min: query `pending` payments older than 2 min
-  - Call Daraja Transaction Status using that business's credentials
+  - Call Daraja Transaction Status using that client's credentials
   - Update payment + write journal entries if confirmed
 - [ ] 7.2 Wire reconciliation job into `main.go` using a ticker goroutine
 - [ ] 7.3 Update `/health/ready` — ping all consumer pools + Redis
