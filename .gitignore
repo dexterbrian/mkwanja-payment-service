@@ -21,9 +21,11 @@
 *.swo
 .DS_Store
 
-# Go modules (keep go.mod & go.sum)
-#go.sum
-
 # Environment files
 .env
 .env.local
+.env.*.local
+
+# Supabase local dev
+/supabase/.temp
+/supabase/volumes
