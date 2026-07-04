@@ -12,6 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"mkwanja-payment-svc/internal/config"
+	"mkwanja-payment-svc/internal/crypto"
 	"mkwanja-payment-svc/internal/db"
 	"mkwanja-payment-svc/internal/handler"
 	"mkwanja-payment-svc/internal/router"
@@ -46,11 +47,20 @@ func main() {
 		slog.Info("consumer db registered", "consumer", c.ID)
 	}
 
+	// Parse encryption key
+	encryptKey, err := crypto.ParseHexKey(cfg.CredentialEncryptionKey)
+	if err != nil {
+		slog.Error("invalid CREDENTIAL_ENCRYPTION_KEY", "error", err)
+		os.Exit(1)
+	}
+
+	// Consumer registry
+	consumerRegistry := config.NewConsumerRegistry(cfg.Consumers)
+
 	// Build app
 	app := fiber.New(fiber.Config{
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		// Disable Fiber's default error logger — we use slog
+		ReadTimeout:           10 * time.Second,
+		WriteTimeout:          30 * time.Second,
 		DisableStartupMessage: false,
 	})
 
@@ -59,7 +69,13 @@ func main() {
 	healthHandler := handler.NewHealthHandler(registry, redisWrapper)
 
 	// Routes
-	router.Setup(app, healthHandler)
+	router.Setup(app, router.Dependencies{
+		HealthHandler:    healthHandler,
+		ConsumerRegistry: consumerRegistry,
+		DBRegistry:       registry,
+		EncryptKey:       encryptKey,
+		Logger:           slog.Default(),
+	})
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)

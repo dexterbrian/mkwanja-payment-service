@@ -37,17 +37,17 @@
 ## Phase 3 — Business & Credential Management
 *Goal: Register business, store encrypted credentials, update, deactivate.*
 
-- [ ] 3.1 Write `internal/repository/business_repo.go` (interface + pgx implementation)
-- [ ] 3.2 Write `internal/service/business_service.go` — register business + seed default journal accounts
-- [ ] 3.3 Write `internal/handler/business_handler.go`
+- [x] 3.1 Write `internal/repository/business_repo.go` (interface + pgx implementation)
+- [x] 3.2 Write `internal/service/business_service.go` — register business + seed default journal accounts
+- [x] 3.3 Write `internal/handler/business_handler.go`
   - `POST /v1/businesses` — register business + encrypt + store credentials
   - `POST /v1/businesses/test-credentials` — verify Daraja OAuth without saving
   - `PUT /v1/businesses/:id/credentials` — update credentials
   - `DELETE /v1/businesses/:id` — soft-deactivate
-- [ ] 3.4 Write `internal/middleware/auth.go` (`X-Service-Secret` validation) + `consumer.go` (resolve pool)
-- [ ] 3.5 Write `internal/middleware/idempotency.go`
-- [ ] 3.6 Write `internal/router/router.go` — register all middleware + business routes
-- [ ] 3.7 Write table-driven tests for business service and handler
+- [x] 3.4 Write `internal/middleware/auth.go` (`X-Service-Secret` validation) + `consumer.go` (resolve pool)
+- [x] 3.5 Write `internal/middleware/idempotency.go`
+- [x] 3.6 Write `internal/router/router.go` — register all middleware + business routes
+- [x] 3.7 Write table-driven tests for business service and handler
 
 ---
 
