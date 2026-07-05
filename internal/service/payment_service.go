@@ -16,11 +16,12 @@ import (
 	"mkwanja-payment-svc/internal/repository"
 )
 
-// DarajaClient is the subset of daraja.Client used by PaymentService.
+// DarajaClient is the subset of daraja.Client used by PaymentService and ReconciliationService.
 type DarajaClient interface {
 	InitiateSTKPush(ctx context.Context, req daraja.STKPushRequest) (*daraja.STKPushResponse, error)
 	InitiateB2C(ctx context.Context, req daraja.B2CRequest) (*daraja.B2CResponse, error)
 	InitiateB2B(ctx context.Context, req daraja.B2BRequest) (*daraja.B2BResponse, error)
+	QueryTransactionStatus(ctx context.Context, req daraja.TransactionStatusRequest) (*daraja.TransactionStatusResponse, error)
 }
 
 // InitiateSTKPushRequest holds input for an STK push initiation.
@@ -57,9 +58,10 @@ func (r *InitiateSTKPushRequest) Validate() error {
 
 // InitiateSTKPushResult is the response from an STK push initiation.
 type InitiateSTKPushResult struct {
-	PaymentID         string `json:"payment_id"`
-	CheckoutRequestID string `json:"checkout_request_id"`
-	Status            string `json:"status"`
+	PaymentID            string `json:"payment_id"`
+	CheckoutRequestID    string `json:"checkout_request_id"`
+	Status               string `json:"status"`
+	IdempotencyReplayed  bool   `json:"-"`
 }
 
 // InitiateB2CRequest holds input for a B2C payment.
@@ -99,10 +101,11 @@ func (r *InitiateB2CRequest) Validate() error {
 
 // InitiateB2CResult is the response from a B2C payment initiation.
 type InitiateB2CResult struct {
-	PaymentID        string `json:"payment_id"`
-	ConversationID   string `json:"conversation_id"`
-	OriginatorConvID string `json:"originator_conversation_id"`
-	Status           string `json:"status"`
+	PaymentID           string `json:"payment_id"`
+	ConversationID      string `json:"conversation_id"`
+	OriginatorConvID    string `json:"originator_conversation_id"`
+	Status              string `json:"status"`
+	IdempotencyReplayed bool   `json:"-"`
 }
 
 // InitiateB2BRequest holds input for a B2B payment.
@@ -143,10 +146,11 @@ func (r *InitiateB2BRequest) Validate() error {
 
 // InitiateB2BResult is the response from a B2B payment initiation.
 type InitiateB2BResult struct {
-	PaymentID        string `json:"payment_id"`
-	ConversationID   string `json:"conversation_id"`
-	OriginatorConvID string `json:"originator_conversation_id"`
-	Status           string `json:"status"`
+	PaymentID           string `json:"payment_id"`
+	ConversationID      string `json:"conversation_id"`
+	OriginatorConvID    string `json:"originator_conversation_id"`
+	Status              string `json:"status"`
+	IdempotencyReplayed bool   `json:"-"`
 }
 
 // PaymentService handles payment operations.
@@ -195,8 +199,9 @@ func (s *PaymentService) InitiateSTKPush(ctx context.Context, req InitiateSTKPus
 	if err == nil {
 		s.logger.Info("idempotency hit", "payment_id", existing.ID, "idempotency_key", req.IdempotencyKey)
 		return &InitiateSTKPushResult{
-			PaymentID: existing.ID,
-			Status:    string(existing.Status),
+			PaymentID:           existing.ID,
+			Status:              string(existing.Status),
+			IdempotencyReplayed: true,
 		}, nil
 	}
 
@@ -315,8 +320,9 @@ func (s *PaymentService) InitiateB2C(ctx context.Context, req InitiateB2CRequest
 	if err == nil {
 		s.logger.Info("idempotency hit", "payment_id", existing.ID, "idempotency_key", req.IdempotencyKey)
 		return &InitiateB2CResult{
-			PaymentID: existing.ID,
-			Status:    string(existing.Status),
+			PaymentID:           existing.ID,
+			Status:              string(existing.Status),
+			IdempotencyReplayed: true,
 		}, nil
 	}
 
@@ -437,8 +443,9 @@ func (s *PaymentService) InitiateB2B(ctx context.Context, req InitiateB2BRequest
 	if err == nil {
 		s.logger.Info("idempotency hit", "payment_id", existing.ID, "idempotency_key", req.IdempotencyKey)
 		return &InitiateB2BResult{
-			PaymentID: existing.ID,
-			Status:    string(existing.Status),
+			PaymentID:           existing.ID,
+			Status:              string(existing.Status),
+			IdempotencyReplayed: true,
 		}, nil
 	}
 

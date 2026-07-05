@@ -107,9 +107,10 @@ func (s *stubClientRepo) ListJournalAccounts(ctx context.Context, clientID strin
 }
 
 type stubDarajaClient struct {
-	initiateSTKPushFn func(ctx context.Context, req daraja.STKPushRequest) (*daraja.STKPushResponse, error)
-	initiateB2CFn     func(ctx context.Context, req daraja.B2CRequest) (*daraja.B2CResponse, error)
-	initiateB2BFn     func(ctx context.Context, req daraja.B2BRequest) (*daraja.B2BResponse, error)
+	initiateSTKPushFn        func(ctx context.Context, req daraja.STKPushRequest) (*daraja.STKPushResponse, error)
+	initiateB2CFn            func(ctx context.Context, req daraja.B2CRequest) (*daraja.B2CResponse, error)
+	initiateB2BFn            func(ctx context.Context, req daraja.B2BRequest) (*daraja.B2BResponse, error)
+	queryTransactionStatusFn func(ctx context.Context, req daraja.TransactionStatusRequest) (*daraja.TransactionStatusResponse, error)
 }
 
 func (s *stubDarajaClient) InitiateSTKPush(ctx context.Context, req daraja.STKPushRequest) (*daraja.STKPushResponse, error) {
@@ -120,6 +121,12 @@ func (s *stubDarajaClient) InitiateB2C(ctx context.Context, req daraja.B2CReques
 }
 func (s *stubDarajaClient) InitiateB2B(ctx context.Context, req daraja.B2BRequest) (*daraja.B2BResponse, error) {
 	return s.initiateB2BFn(ctx, req)
+}
+func (s *stubDarajaClient) QueryTransactionStatus(ctx context.Context, req daraja.TransactionStatusRequest) (*daraja.TransactionStatusResponse, error) {
+	if s.queryTransactionStatusFn == nil {
+		return nil, nil
+	}
+	return s.queryTransactionStatusFn(ctx, req)
 }
 
 func newTestPaymentHandler(payRepo *stubPaymentRepo, clientRepo *stubClientRepo, dc *stubDarajaClient, journalRepo repository.JournalRepo) *PaymentHandler {

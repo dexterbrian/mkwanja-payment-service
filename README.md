@@ -1,80 +1,91 @@
-Mkwanja Payment Service
-========================
-### Overview
+# mkwanja-payment-service
 
-The Mkwanja Payment Service is a microservice designed to handle all payment processing for the Mkwanja app. It integrates multiple payment gateways, including M-PESA, Flutterwave, and Mookh, to provide a seamless payment experience.
+Multi-tenant M-PESA payment service (Daraja API) for consumer apps.
 
-### Technology Stack
+## Architecture
 
-* **Programming Language:** Go
-* **Web Framework:** [Fiber](https://gofiber.io/)
-* **Development Tools:**
-  1. [Fresh](https://github.com/gravityblast/fresh)
-  2. [GORM](https://gorm.io/)
-  3. [godotenv](https://github.com/joho/godotenv)
+See [CLAUDE.md](./CLAUDE.md) for full architecture docs.
 
-### Getting Started
+## Quick Start
 
-#### Prerequisites
+1. Copy `.env.example` → `.env` and fill in your config
+2. Ensure local infra is running (see below)
+3. `make run`
 
-* Go (version 1.23.0 or higher) installed on your system
-* Fresh installed on your system (`go install github.com/gravityblast/fresh@latest`)
-* GORM installed on your system (`go get -u gorm.io/gorm`)
-* A code editor or IDE of your choice
+## Dependencies
 
-#### Running the Project
+- Go 1.23+
+- PostgreSQL (via Supabase)
+- Redis
+- Safaricom Daraja API credentials
 
-1. Clone the repository: `git clone https://github.com/dexterbrian/mkwanja-payment-service.git`
-2. Navigate to the project directory: `cd mkwanja-payment-service`
-3. Install libraries by running: `go mod tidy`
-4. Run the project using Fresh: `fresh`
-5. The project will start in development mode, watching for file changes and automatically reloading the server.
+## Local Infra
 
-### Configuration
+Start local Supabase and Redis:
 
-The project uses JSON configuration files stored in the `config/` directory in combination with environment variables to configure various aspects of the application. Environment variables are found in the root of the project's directory in the `.env` file.
+```bash
+# Start Supabase (Docker)
+npx supabase start
 
-### Database Setup
+# Start Redis
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+```
 
-The project uses MySQL as its database. Configuration for the database connection can be found in the `config/database.go` file. To set up the database:
+## API Endpoints
 
-1. Ensure PostgreSQL is installed and running on your system.
-2. Update the `.env` file with your database credentials.
-3. Run migrations using the provided migration script: `go run scripts/migrate.go`
-4. Seed the database: `go run scripts/seed.go`
+See [docs/api.md](./docs/api.md) for full API reference.
 
-### Testing
+### Client Management
+- `POST /v1/clients` — Register a new client with Daraja credentials
+- `PUT /v1/clients/:client_id/credentials` — Update credentials
+- `DELETE /v1/clients/:client_id` — Deactivate a client
+- `POST /v1/clients/test-credentials` — Test Daraja OAuth
 
-Tests are located in the `tests/` directory and are organized by payment gateway. To run the tests:
+### Payments
+- `POST /v1/payments/stk-push` — Initiate STK Push
+- `POST /v1/payments/b2c` — Initiate B2C payment
+- `POST /v1/payments/b2b` — Initiate B2B payment
+- `GET /v1/payments/:id` — Get payment by ID
+- `GET /v1/payments` — List payments
 
-1. Navigate to the project directory: `cd mkwanja-payment-service`
-2. Run the tests using the Go test tool: `go test ./...`
+### Ledger
+- `GET /v1/ledger` — List journal entries
+- `GET /v1/ledger/balance` — Account balances
+- `GET /v1/ledger/trial-balance` — Trial balance
 
-### Deployment
+### Webhooks (Safaricom → Service)
+- `POST /webhooks/mpesa/stk/:consumer_id`
+- `POST /webhooks/mpesa/b2c/:consumer_id`
+- `POST /webhooks/mpesa/b2b/:consumer_id`
+- `POST /webhooks/mpesa/c2b/:consumer_id/confirm`
+- `POST /webhooks/mpesa/c2b/:consumer_id/validate`
 
-Deployment details are specific to the environment. For a typical deployment:
+### Health
+- `GET /health` — Liveness check
+- `GET /health/ready` — Readiness check (pings all DBs + Redis)
 
-1. Build the project: `go build -o mkwanja-payment-service`
-2. Deploy the binary to your server.
-3. Run the binary: `./mkwanja-payment-service`
+## Project Structure
 
-### Swagger API Documentation (coming soon)
+```
+cmd/server/            — Entry point
+internal/
+  config/              — Environment config
+  crypto/              — AES-256-GCM encryption
+  daraja/              — M-PESA Daraja API client
+  db/                  — DB registry, migrations, sqlc generated code
+  domain/              — Domain types and validation
+  handler/             — HTTP handlers (Fiber)
+  middleware/          — Auth, consumer, idempotency
+  queue/               — Async job queue (asynq)
+  repository/          — Data access layer
+  router/              — Route registration
+  service/             — Business logic
+docs/                  — Documentation
+```
 
-API documentation is generated using Swagger and can be found at `http://localhost:3000/swagger/index.html` when the project is running in development mode.
+## Testing
 
-### Contributing
-
-Contributions are welcome! Please submit a pull request with a clear description of the changes made.
-
-### Author
-
-This project was authored by Dexter Brian Waweru and is maintained by the Mkwanja team.
-
-### License
-
-This project is licensed under the MIT License.
-
-### Acknowledgments
-
-* The Mkwanja team for their hard work and dedication.
-* The Go and Fiber communities for their support and resources.
+```bash
+make test          # go test ./... -v -race -count=1
+make lint          # golangci-lint run ./...
+```

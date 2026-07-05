@@ -38,8 +38,17 @@ func Idempotency() fiber.Handler {
 			})
 		}
 
-		// Store in context for handlers to use
 		c.Locals("idempotency_key", key)
+		return c.Next()
+	}
+}
+
+// IdempotencyReplayed is a helper to set the Idempotency-Replayed response header.
+func IdempotencyReplayed() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		if c.Locals("idempotency_replayed") == true {
+			c.Response().Header.Set("Idempotency-Replayed", "true")
+		}
 		return c.Next()
 	}
 }

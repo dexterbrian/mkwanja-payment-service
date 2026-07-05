@@ -57,6 +57,9 @@ func (h *PaymentHandler) InitiateSTKPush(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(errResp("INITIATION_FAILED", err.Error()))
 	}
 
+	if result.IdempotencyReplayed {
+		c.Response().Header.Set("Idempotency-Replayed", "true")
+	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"payment_id":          result.PaymentID,
 		"checkout_request_id": result.CheckoutRequestID,
@@ -105,6 +108,9 @@ func (h *PaymentHandler) InitiateB2C(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(errResp("INITIATION_FAILED", err.Error()))
 	}
 
+	if result.IdempotencyReplayed {
+		c.Response().Header.Set("Idempotency-Replayed", "true")
+	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"payment_id":               result.PaymentID,
 		"conversation_id":          result.ConversationID,
@@ -156,6 +162,9 @@ func (h *PaymentHandler) InitiateB2B(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(errResp("INITIATION_FAILED", err.Error()))
 	}
 
+	if result.IdempotencyReplayed {
+		c.Response().Header.Set("Idempotency-Replayed", "true")
+	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"payment_id":               result.PaymentID,
 		"conversation_id":          result.ConversationID,

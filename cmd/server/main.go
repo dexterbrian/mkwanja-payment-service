@@ -13,6 +13,7 @@ import (
 
 	"mkwanja-payment-svc/internal/config"
 	"mkwanja-payment-svc/internal/crypto"
+	"mkwanja-payment-svc/internal/daraja"
 	"mkwanja-payment-svc/internal/db"
 	"mkwanja-payment-svc/internal/handler"
 	"mkwanja-payment-svc/internal/repository"
@@ -47,7 +48,8 @@ func main() {
 
 	// DB registry — register one pool per consumer, then migrate and optionally seed operator
 	registry := db.NewRegistry()
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	for _, c := range cfg.Consumers {
 		if err := registry.Register(ctx, c.ID, c.DatabaseURL); err != nil {
 			slog.Error("db registry failed", "consumer", c.ID, "error", err)
@@ -111,6 +113,34 @@ func main() {
 		OperatorClientID: cfg.OperatorClientID,
 	})
 
+	// Start reconciliation ticker
+	tokenCache := daraja.NewRedisTokenCache(rdb)
+	reconciler := service.NewReconciliationService(
+		registry, encryptKey, cfg.DarajaBaseURL, cfg.DarajaCallbackURL,
+		tokenCache, rdb, slog.Default().With("service", "reconciliation"),
+	)
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		slog.Info("running reconciliation on startup")
+		if err := reconciler.RunOnce(ctx); err != nil {
+			slog.Error("reconciliation startup run failed", "error", err)
+		}
+
+		for {
+			select {
+			case <-ticker.C:
+				slog.Info("running reconciliation cycle")
+				if err := reconciler.RunOnce(ctx); err != nil {
+					slog.Error("reconciliation cycle failed", "error", err)
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -118,6 +148,7 @@ func main() {
 	go func() {
 		<-quit
 		slog.Info("shutting down")
+		cancel()
 		_ = app.ShutdownWithTimeout(5 * time.Second)
 	}()
 

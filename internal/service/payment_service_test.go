@@ -65,9 +65,10 @@ var _ repository.PaymentRepo = (*mockPaymentRepo)(nil)
 
 // mockDarajaClient is a test double for DarajaClient.
 type mockDarajaClient struct {
-	initiateSTKPushFn func(ctx context.Context, req daraja.STKPushRequest) (*daraja.STKPushResponse, error)
-	initiateB2CFn     func(ctx context.Context, req daraja.B2CRequest) (*daraja.B2CResponse, error)
-	initiateB2BFn     func(ctx context.Context, req daraja.B2BRequest) (*daraja.B2BResponse, error)
+	initiateSTKPushFn           func(ctx context.Context, req daraja.STKPushRequest) (*daraja.STKPushResponse, error)
+	initiateB2CFn               func(ctx context.Context, req daraja.B2CRequest) (*daraja.B2CResponse, error)
+	initiateB2BFn               func(ctx context.Context, req daraja.B2BRequest) (*daraja.B2BResponse, error)
+	queryTransactionStatusFn    func(ctx context.Context, req daraja.TransactionStatusRequest) (*daraja.TransactionStatusResponse, error)
 }
 
 func (m *mockDarajaClient) InitiateSTKPush(ctx context.Context, req daraja.STKPushRequest) (*daraja.STKPushResponse, error) {
@@ -78,6 +79,12 @@ func (m *mockDarajaClient) InitiateB2C(ctx context.Context, req daraja.B2CReques
 }
 func (m *mockDarajaClient) InitiateB2B(ctx context.Context, req daraja.B2BRequest) (*daraja.B2BResponse, error) {
 	return m.initiateB2BFn(ctx, req)
+}
+func (m *mockDarajaClient) QueryTransactionStatus(ctx context.Context, req daraja.TransactionStatusRequest) (*daraja.TransactionStatusResponse, error) {
+	if m.queryTransactionStatusFn == nil {
+		return nil, nil
+	}
+	return m.queryTransactionStatusFn(ctx, req)
 }
 
 func TestInitiateSTKPushRequest_Validate(t *testing.T) {
