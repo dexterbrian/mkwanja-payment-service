@@ -422,7 +422,7 @@ func TestPaymentService_InitiateSTKPush(t *testing.T) {
 			mockDC := &mockDarajaClient{}
 			tt.mockSetup(mockPay, mockClient, mockDC)
 
-			svc := NewPaymentServiceForTest(mockPay, mockClient, encryptKey, "https://example.com/callback",
+			svc := NewPaymentServiceForTest(mockPay, mockClient, nil, encryptKey, "https://example.com/callback",
 				redis.NewClient(&redis.Options{Addr: "localhost:6379"}),
 				func(_, _, _, _ string) DarajaClient {
 					return mockDC
@@ -536,7 +536,7 @@ func TestPaymentService_InitiateB2C(t *testing.T) {
 			mockDC := &mockDarajaClient{}
 			tt.mockSetup(mockPay, mockClient, mockDC)
 
-			svc := NewPaymentServiceForTest(mockPay, mockClient, encryptKey, "https://example.com/callback",
+			svc := NewPaymentServiceForTest(mockPay, mockClient, nil, encryptKey, "https://example.com/callback",
 				redis.NewClient(&redis.Options{Addr: "localhost:6379"}),
 				func(_, _, _, _ string) DarajaClient {
 					return mockDC
@@ -650,7 +650,7 @@ func TestPaymentService_InitiateB2B(t *testing.T) {
 			mockDC := &mockDarajaClient{}
 			tt.mockSetup(mockPay, mockClient, mockDC)
 
-			svc := NewPaymentServiceForTest(mockPay, mockClient, encryptKey, "https://example.com/callback",
+			svc := NewPaymentServiceForTest(mockPay, mockClient, nil, encryptKey, "https://example.com/callback",
 				redis.NewClient(&redis.Options{Addr: "localhost:6379"}),
 				func(_, _, _, _ string) DarajaClient {
 					return mockDC

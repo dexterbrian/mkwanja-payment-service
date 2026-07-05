@@ -82,6 +82,12 @@ func Setup(app *fiber.App, deps Dependencies) {
 	api.Get("/payments/:id", paymentHandler.getPayment)
 	api.Get("/payments", paymentHandler.listPayments)
 
+	// Ledger routes
+	ledgerHandler := &ledgerHandlerAdapter{logger: deps.Logger}
+	api.Get("/ledger", ledgerHandler.listEntries)
+	api.Get("/ledger/balance", ledgerHandler.getBalances)
+	api.Get("/ledger/trial-balance", ledgerHandler.getTrialBalance)
+
 	// Webhook routes (no consumer auth — outside /v1 group)
 	webhookHandler := handler.NewWebhookHandler(deps.Logger)
 	webhooks := app.Group("/webhooks/mpesa")
@@ -169,8 +175,9 @@ func (a *paymentHandlerAdapter) serviceFromCtx(c *fiber.Ctx) *service.PaymentSer
 	q := dbgen.New(stdlibDB)
 	paymentRepo := repository.NewPgxPaymentRepo(q)
 	clientRepo := repository.NewPgxClientRepo(q)
+	journalRepo := repository.NewPgxJournalRepo(q, stdlibDB)
 	tokenCache := daraja.NewRedisTokenCache(a.rdb)
-	return service.NewPaymentService(paymentRepo, clientRepo, a.encryptKey, a.darajaBaseURL, a.callbackURL, tokenCache, a.rdb, a.logger)
+	return service.NewPaymentService(paymentRepo, clientRepo, journalRepo, a.encryptKey, a.darajaBaseURL, a.callbackURL, tokenCache, a.rdb, a.logger)
 }
 
 func (a *paymentHandlerAdapter) initiateSTKPush(c *fiber.Ctx) error {
@@ -201,4 +208,36 @@ func (a *paymentHandlerAdapter) listPayments(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
 	h := handler.NewPaymentHandler(svc, a.logger)
 	return h.ListPayments(c)
+}
+
+// ledgerHandlerAdapter creates the journal service per-request from the pool in context.
+type ledgerHandlerAdapter struct {
+	logger *slog.Logger
+}
+
+func (a *ledgerHandlerAdapter) handlerFromCtx(c *fiber.Ctx) *handler.LedgerHandler {
+	pool, ok := c.Locals("db_pool").(*pgxpool.Pool)
+	if !ok {
+		return nil
+	}
+	stdlibDB := stdlib.OpenDBFromPool(pool)
+	q := dbgen.New(stdlibDB)
+	journalRepo := repository.NewPgxJournalRepo(q, stdlibDB)
+	svc := service.NewJournalService(journalRepo, a.logger)
+	return handler.NewLedgerHandler(svc, a.logger)
+}
+
+func (a *ledgerHandlerAdapter) listEntries(c *fiber.Ctx) error {
+	h := a.handlerFromCtx(c)
+	return h.ListEntries(c)
+}
+
+func (a *ledgerHandlerAdapter) getBalances(c *fiber.Ctx) error {
+	h := a.handlerFromCtx(c)
+	return h.GetBalances(c)
+}
+
+func (a *ledgerHandlerAdapter) getTrialBalance(c *fiber.Ctx) error {
+	h := a.handlerFromCtx(c)
+	return h.GetTrialBalance(c)
 }

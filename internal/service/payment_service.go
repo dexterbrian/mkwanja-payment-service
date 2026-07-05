@@ -153,6 +153,7 @@ type InitiateB2BResult struct {
 type PaymentService struct {
 	paymentRepo repository.PaymentRepo
 	clientRepo  repository.ClientRepo
+	journalRepo repository.JournalRepo
 	encryptKey  []byte
 	callbackURL string
 	rdb         *redis.Client
@@ -161,13 +162,14 @@ type PaymentService struct {
 }
 
 // NewPaymentService creates a PaymentService.
-func NewPaymentService(paymentRepo repository.PaymentRepo, clientRepo repository.ClientRepo, encryptKey []byte, baseURL, callbackURL string, tokenCache daraja.TokenCache, rdb *redis.Client, logger *slog.Logger) *PaymentService {
+func NewPaymentService(paymentRepo repository.PaymentRepo, clientRepo repository.ClientRepo, journalRepo repository.JournalRepo, encryptKey []byte, baseURL, callbackURL string, tokenCache daraja.TokenCache, rdb *redis.Client, logger *slog.Logger) *PaymentService {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &PaymentService{
 		paymentRepo: paymentRepo,
 		clientRepo:  clientRepo,
+		journalRepo: journalRepo,
 		encryptKey:  encryptKey,
 		callbackURL: callbackURL,
 		rdb:         rdb,
@@ -577,7 +579,7 @@ func (s *PaymentService) ListPayments(ctx context.Context, clientID string, limi
 	return s.paymentRepo.ListPaymentsByClient(ctx, clientID, limit, offset)
 }
 
-// CompletePayment updates a payment to completed and creates a payment event.
+// CompletePayment updates a payment to completed, creates a payment event, and writes journal entries.
 func (s *PaymentService) CompletePayment(ctx context.Context, paymentID, receipt, txID string) error {
 	p, err := s.paymentRepo.CompletePayment(ctx, paymentID,
 		sql.NullString{String: receipt, Valid: receipt != ""},
@@ -596,8 +598,22 @@ func (s *PaymentService) CompletePayment(ctx context.Context, paymentID, receipt
 		s.logger.Error("failed to create payment complete event", "payment_id", paymentID, "error", err)
 	}
 
+	// Write journal entries based on payment direction
+	journalSvc := NewJournalService(s.journalRepo, s.logger)
+	switch p.Direction {
+	case db.PaymentDirectionInbound:
+		if err := journalSvc.WriteInboundEntries(ctx, p); err != nil {
+			s.logger.Error("failed to write inbound journal entries", "payment_id", paymentID, "error", err)
+		}
+	case db.PaymentDirectionOutbound:
+		if err := journalSvc.WriteOutboundEntries(ctx, p); err != nil {
+			s.logger.Error("failed to write outbound journal entries", "payment_id", paymentID, "error", err)
+		}
+	default:
+		s.logger.Warn("unknown payment direction, no journal entries written", "payment_id", paymentID, "direction", p.Direction)
+	}
+
 	s.logger.Info("payment completed", "payment_id", paymentID, "receipt", receipt)
-	_ = p
 	return nil
 }
 
@@ -623,13 +639,14 @@ func (s *PaymentService) FailPayment(ctx context.Context, paymentID, reason stri
 }
 
 // NewPaymentServiceForTest creates a PaymentService with a custom daraja client builder for testing.
-func NewPaymentServiceForTest(paymentRepo repository.PaymentRepo, clientRepo repository.ClientRepo, encryptKey []byte, callbackURL string, rdb *redis.Client, buildClient func(consumerKey, consumerSecret, shortcode, passkey string) DarajaClient, logger *slog.Logger) *PaymentService {
+func NewPaymentServiceForTest(paymentRepo repository.PaymentRepo, clientRepo repository.ClientRepo, journalRepo repository.JournalRepo, encryptKey []byte, callbackURL string, rdb *redis.Client, buildClient func(consumerKey, consumerSecret, shortcode, passkey string) DarajaClient, logger *slog.Logger) *PaymentService {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &PaymentService{
 		paymentRepo: paymentRepo,
 		clientRepo:  clientRepo,
+		journalRepo: journalRepo,
 		encryptKey:  encryptKey,
 		callbackURL: callbackURL,
 		rdb:         rdb,

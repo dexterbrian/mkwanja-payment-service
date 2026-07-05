@@ -74,42 +74,41 @@
 ## Phase 5 — Payment Service & Webhook Queue
 *Goal: Full STK Push, B2C, B2B, C2B flows; async webhook processing.*
 
-- [ ] 5.1 Write `internal/repository/payment_repo.go`
-- [ ] 5.2 Write `internal/service/payment_service.go`
+- [x] 5.1 Write `internal/repository/payment_repo.go`
+- [x] 5.2 Write `internal/service/payment_service.go`
   - `InitiateSTKPush` (idempotency → create → credentials → client → Daraja → Redis routing key → return)
   - `InitiateB2C`
   - `InitiateB2B`
   - `GetPayment`, `ListPayments`
-- [ ] 5.3 Write `internal/queue/jobs.go` — job type constants + payload structs
-- [ ] 5.4 Write `internal/queue/worker.go` — asynq worker; `ProcessSTKWebhook`, `ProcessB2CWebhook`, `ProcessB2BWebhook`; deliver callback to consumer
-- [ ] 5.5 Write `internal/handler/payment_handler.go`
+- [x] 5.3 Write `internal/queue/jobs.go` — job type constants + payload structs
+- [x] 5.4 Write `internal/queue/worker.go` — asynq worker; `ProcessSTKWebhook`, `ProcessB2CWebhook`, `ProcessB2BWebhook`; deliver callback to consumer
+- [x] 5.5 Write `internal/handler/payment_handler.go`
   - `POST /v1/payments/stk-push`
   - `POST /v1/payments/b2c`
   - `POST /v1/payments/b2b`
   - `GET /v1/payments/:id`
   - `GET /v1/payments`
-- [ ] 5.6 Write `internal/handler/webhook_handler.go` — per-consumer webhook paths (`/webhooks/mpesa/stk/:consumer_id`, etc.); enqueue raw body; always return 200
-- [ ] 5.7 Register payment + webhook routes in router
-- [ ] 5.8 Write table-driven tests for payment service (mock Daraja client)
+- [x] 5.6 Write `internal/handler/webhook_handler.go` — per-consumer webhook paths (`/webhooks/mpesa/stk/:consumer_id`, etc.); enqueue raw body; always return 200
+- [x] 5.7 Register payment + webhook routes in router
+- [x] 5.8 Write table-driven tests for payment service (mock Daraja client)
 
 ---
 
 ## Phase 6 — Double-Entry Ledger
 *Goal: Balanced journal writes for every confirmed payment; ledger query endpoints.*
 
-- [ ] 6.1 Write `internal/repository/journal_repo.go`
-- [ ] 6.2 Write `internal/service/journal_service.go`
-  - `SeedDefaultAccounts` (called at client registration)
+- [x] 6.1 Write `internal/repository/journal_repo.go`
+- [x] 6.2 Write `internal/service/journal_service.go`
   - `WriteInboundEntries` (STK Push / C2B confirmed)
   - `WriteOutboundEntries` (B2C / B2B)
   - `writeBalancedEntries` (verify debits = credits → single tx commit)
-- [ ] 6.3 Write `internal/handler/ledger_handler.go`
+- [x] 6.3 Write `internal/handler/ledger_handler.go`
   - `GET /v1/ledger` — journal entries for a client
   - `GET /v1/ledger/balance` — account balances
   - `GET /v1/ledger/trial-balance` — full trial balance
-- [ ] 6.4 Register ledger routes in router
-- [ ] 6.5 Wire `JournalService` into webhook worker (called after `CompletePayment`)
-- [ ] 6.6 Write table-driven tests — assert debits = credits; assert no UPDATE/DELETE on journal
+- [x] 6.4 Register ledger routes in router
+- [x] 6.5 Wire `JournalService` into webhook worker (called after `CompletePayment`)
+- [x] 6.6 Write table-driven tests — assert debits = credits; assert no UPDATE/DELETE on journal
 
 ---
 

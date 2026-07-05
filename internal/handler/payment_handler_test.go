@@ -14,6 +14,7 @@ import (
 	"mkwanja-payment-svc/internal/crypto"
 	"mkwanja-payment-svc/internal/daraja"
 	db "mkwanja-payment-svc/internal/db/generated"
+	"mkwanja-payment-svc/internal/repository"
 	"mkwanja-payment-svc/internal/service"
 )
 
@@ -121,9 +122,9 @@ func (s *stubDarajaClient) InitiateB2B(ctx context.Context, req daraja.B2BReques
 	return s.initiateB2BFn(ctx, req)
 }
 
-func newTestPaymentHandler(payRepo *stubPaymentRepo, clientRepo *stubClientRepo, dc *stubDarajaClient) *PaymentHandler {
+func newTestPaymentHandler(payRepo *stubPaymentRepo, clientRepo *stubClientRepo, dc *stubDarajaClient, journalRepo repository.JournalRepo) *PaymentHandler {
 	encryptKey := make([]byte, 32)
-	svc := service.NewPaymentServiceForTest(payRepo, clientRepo, encryptKey, "https://example.com/callback", nil,
+	svc := service.NewPaymentServiceForTest(payRepo, clientRepo, journalRepo, encryptKey, "https://example.com/callback", nil,
 		func(_, _, _, _ string) service.DarajaClient {
 			return dc
 		}, nil)
@@ -146,7 +147,7 @@ func setupFiberTest(handler *PaymentHandler) *fiber.App {
 }
 
 func TestPaymentHandler_InitiateSTKPush_InvalidBody(t *testing.T) {
-	handler := newTestPaymentHandler(&stubPaymentRepo{}, &stubClientRepo{}, &stubDarajaClient{})
+	handler := newTestPaymentHandler(&stubPaymentRepo{}, &stubClientRepo{}, &stubDarajaClient{}, nil)
 	app := setupFiberTest(handler)
 
 	req := httptest.NewRequest("POST", "/v1/payments/stk-push", nil)
@@ -201,7 +202,7 @@ func TestPaymentHandler_InitiateSTKPush_Success(t *testing.T) {
 		},
 	}
 
-	handler := newTestPaymentHandler(payRepo, clientRepo, dc)
+	handler := newTestPaymentHandler(payRepo, clientRepo, dc, nil)
 	app := setupFiberTest(handler)
 
 	body := `{"client_id":"client-1","amount_cents":10000,"phone_number":"254712345678","reference":"ref-001"}`
@@ -231,7 +232,7 @@ func TestPaymentHandler_InitiateSTKPush_Idempotency(t *testing.T) {
 			return db.Payment{ID: "existing-payment", Status: db.PaymentStatusCompleted}, nil
 		},
 	}
-	handler := newTestPaymentHandler(payRepo, &stubClientRepo{}, &stubDarajaClient{})
+	handler := newTestPaymentHandler(payRepo, &stubClientRepo{}, &stubDarajaClient{}, nil)
 	app := setupFiberTest(handler)
 
 	body := `{"client_id":"client-1","amount_cents":10000,"phone_number":"254712345678","reference":"ref-001"}`
@@ -296,7 +297,7 @@ func TestPaymentHandler_InitiateB2C_Success(t *testing.T) {
 		},
 	}
 
-	handler := newTestPaymentHandler(payRepo, clientRepo, dc)
+	handler := newTestPaymentHandler(payRepo, clientRepo, dc, nil)
 	app := setupFiberTest(handler)
 
 	body := `{"client_id":"client-1","amount_cents":5000,"phone_number":"254712345678","reference":"ref-001"}`
@@ -361,7 +362,7 @@ func TestPaymentHandler_InitiateB2B_Success(t *testing.T) {
 		},
 	}
 
-	handler := newTestPaymentHandler(payRepo, clientRepo, dc)
+	handler := newTestPaymentHandler(payRepo, clientRepo, dc, nil)
 	app := setupFiberTest(handler)
 
 	body := `{"client_id":"client-1","amount_cents":10000,"receiver_shortcode":"654321","reference":"ref-001"}`
@@ -391,7 +392,7 @@ func TestPaymentHandler_GetPayment(t *testing.T) {
 			return db.Payment{ID: id, Status: db.PaymentStatusCompleted}, nil
 		},
 	}
-	handler := newTestPaymentHandler(payRepo, &stubClientRepo{}, &stubDarajaClient{})
+	handler := newTestPaymentHandler(payRepo, &stubClientRepo{}, &stubDarajaClient{}, nil)
 	app := setupFiberTest(handler)
 
 	req := httptest.NewRequest("GET", "/v1/payments/payment-001", nil)
@@ -421,7 +422,7 @@ func TestPaymentHandler_ListPayments(t *testing.T) {
 			}, nil
 		},
 	}
-	handler := newTestPaymentHandler(payRepo, &stubClientRepo{}, &stubDarajaClient{})
+	handler := newTestPaymentHandler(payRepo, &stubClientRepo{}, &stubDarajaClient{}, nil)
 	app := setupFiberTest(handler)
 
 	req := httptest.NewRequest("GET", "/v1/payments?client_id=client-1&limit=10&offset=0", nil)
