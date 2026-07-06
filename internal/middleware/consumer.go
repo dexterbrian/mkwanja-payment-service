@@ -10,15 +10,27 @@ import (
 	"mkwanja-payment-svc/internal/db"
 )
 
-// Consumer resolves the consumer from X-Consumer-ID and attaches the DB pool to context.
+// Consumer authenticates the consumer (X-Consumer-ID + X-Service-Secret)
+// and attaches the DB pool to context.
 func Consumer(registry *db.Registry, consumers *config.ConsumerRegistry) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id := c.Get("X-Consumer-ID")
-		if id == "" {
+		secret := c.Get("X-Service-Secret")
+		if id == "" || secret == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": fiber.Map{
 					"code":      "UNAUTHORIZED",
-					"message":   "Missing X-Consumer-ID header",
+					"message":   "Missing X-Consumer-ID or X-Service-Secret header",
+					"retryable": false,
+				},
+			})
+		}
+
+		if !consumers.Validate(id, secret) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": fiber.Map{
+					"code":      "UNAUTHORIZED",
+					"message":   "Invalid consumer credentials",
 					"retryable": false,
 				},
 			})
