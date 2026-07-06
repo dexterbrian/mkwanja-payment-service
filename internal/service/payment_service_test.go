@@ -118,6 +118,15 @@ func TestInitiateSTKPushRequest_Validate(t *testing.T) {
 			errMsg:  "amount_cents must be positive",
 		},
 		{
+			name: "fractional shilling amount rejected",
+			req: InitiateSTKPushRequest{
+				ClientID: "client-1", AmountCents: 150050, PhoneNumber: "254712345678",
+				Reference: "ref-001", IdempotencyKey: "key-1",
+			},
+			wantErr: true,
+			errMsg:  "amount_cents must be a whole number of shillings (multiple of 100)",
+		},
+		{
 			name: "missing phone_number",
 			req: InitiateSTKPushRequest{
 				ClientID: "client-1", AmountCents: 100,

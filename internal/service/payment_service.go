@@ -44,6 +44,11 @@ func (r *InitiateSTKPushRequest) Validate() error {
 	if r.AmountCents <= 0 {
 		return fmt.Errorf("amount_cents must be positive")
 	}
+	// M-PESA amounts are whole shillings; a remainder would be silently
+	// truncated by the cents→KES conversion and undercharge the customer.
+	if r.AmountCents%100 != 0 {
+		return fmt.Errorf("amount_cents must be a whole number of shillings (multiple of 100)")
+	}
 	if r.PhoneNumber == "" {
 		return fmt.Errorf("phone_number is required")
 	}
@@ -86,6 +91,11 @@ func (r *InitiateB2CRequest) Validate() error {
 	}
 	if r.AmountCents <= 0 {
 		return fmt.Errorf("amount_cents must be positive")
+	}
+	// M-PESA amounts are whole shillings; a remainder would be silently
+	// truncated by the cents→KES conversion and undercharge the customer.
+	if r.AmountCents%100 != 0 {
+		return fmt.Errorf("amount_cents must be a whole number of shillings (multiple of 100)")
 	}
 	if r.PhoneNumber == "" {
 		return fmt.Errorf("phone_number is required")
@@ -131,6 +141,11 @@ func (r *InitiateB2BRequest) Validate() error {
 	}
 	if r.AmountCents <= 0 {
 		return fmt.Errorf("amount_cents must be positive")
+	}
+	// M-PESA amounts are whole shillings; a remainder would be silently
+	// truncated by the cents→KES conversion and undercharge the customer.
+	if r.AmountCents%100 != 0 {
+		return fmt.Errorf("amount_cents must be a whole number of shillings (multiple of 100)")
 	}
 	if r.ReceiverShortcode == "" {
 		return fmt.Errorf("receiver_shortcode is required")
