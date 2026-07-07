@@ -13,10 +13,11 @@ import (
 	"mkwanja-payment-svc/internal/daraja"
 )
 
-// PaymentCompleter abstracts payment completion for the worker.
+// PaymentCompleter abstracts payment completion for the worker. The
+// consumerID selects which tenant database the payment lives in.
 type PaymentCompleter interface {
-	CompletePayment(ctx context.Context, paymentID, receipt, txID string) error
-	FailPayment(ctx context.Context, paymentID, reason string) error
+	CompletePayment(ctx context.Context, consumerID, paymentID, receipt, txID string) error
+	FailPayment(ctx context.Context, consumerID, paymentID, reason string) error
 }
 
 // Worker processes webhook tasks from the asynq queue.
@@ -83,21 +84,26 @@ func (w *Worker) handleSTKWebhook(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("lookup routing key %s: %w", routingKey, err)
 	}
 
+	// Routing value: {consumerID}:{clientID}:{paymentID}
 	parts := strings.SplitN(route, ":", 3)
-	if len(parts) < 2 {
+	if len(parts) < 3 {
 		return fmt.Errorf("invalid routing value: %s", route)
 	}
-	paymentID := parts[len(parts)-1]
+	consumerID := parts[0]
+	paymentID := parts[2]
+	if consumerID == "" {
+		consumerID = payload.ConsumerID
+	}
 
 	if cb.Body.StkCallback.ResultCode == 0 {
 		receipt := extractMpesaReceipt(cb.Body.StkCallback.CallbackMetadata.Item)
-		if err := w.completer.CompletePayment(ctx, paymentID, receipt, checkoutID); err != nil {
+		if err := w.completer.CompletePayment(ctx, consumerID, paymentID, receipt, checkoutID); err != nil {
 			return fmt.Errorf("complete payment %s: %w", paymentID, err)
 		}
 		w.logger.Info("stk payment completed", "payment_id", paymentID, "receipt", receipt)
 	} else {
 		reason := cb.Body.StkCallback.ResultDesc
-		if err := w.completer.FailPayment(ctx, paymentID, reason); err != nil {
+		if err := w.completer.FailPayment(ctx, consumerID, paymentID, reason); err != nil {
 			return fmt.Errorf("fail payment %s: %w", paymentID, err)
 		}
 		w.logger.Info("stk payment failed", "payment_id", paymentID, "reason", reason)

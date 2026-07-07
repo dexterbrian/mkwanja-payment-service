@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +9,30 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 )
+
+// recordingEnqueuer captures enqueued webhook bodies for assertions.
+type recordingEnqueuer struct {
+	stkConsumerID string
+	stkBody       string
+	b2cCalls      int
+	b2bCalls      int
+}
+
+func (r *recordingEnqueuer) EnqueueSTKWebhook(_ context.Context, consumerID, rawBody string) error {
+	r.stkConsumerID = consumerID
+	r.stkBody = rawBody
+	return nil
+}
+
+func (r *recordingEnqueuer) EnqueueB2CWebhook(_ context.Context, _, _ string) error {
+	r.b2cCalls++
+	return nil
+}
+
+func (r *recordingEnqueuer) EnqueueB2BWebhook(_ context.Context, _, _ string) error {
+	r.b2bCalls++
+	return nil
+}
 
 func setupWebhookTest(handler *WebhookHandler) *fiber.App {
 	app := fiber.New()
@@ -21,7 +46,7 @@ func setupWebhookTest(handler *WebhookHandler) *fiber.App {
 }
 
 func TestWebhookHandler_STKCallback(t *testing.T) {
-	handler := NewWebhookHandler(nil)
+	handler := NewWebhookHandler(nil, nil)
 	app := setupWebhookTest(handler)
 
 	body := `{"Body":{"stkCallback":{"MerchantRequestID":"m-001","CheckoutRequestID":"cr-001","ResultCode":0,"ResultDesc":"Success"}}}`
@@ -45,8 +70,32 @@ func TestWebhookHandler_STKCallback(t *testing.T) {
 	}
 }
 
+func TestWebhookHandler_STKCallback_EnqueuesRawBody(t *testing.T) {
+	enq := &recordingEnqueuer{}
+	handler := NewWebhookHandler(enq, nil)
+	app := setupWebhookTest(handler)
+
+	body := `{"Body":{"stkCallback":{"CheckoutRequestID":"cr-002","ResultCode":0}}}`
+	req := httptest.NewRequest("POST", "/webhooks/mpesa/stk/test-consumer", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	if resp.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	if enq.stkConsumerID != "test-consumer" {
+		t.Fatalf("expected consumer test-consumer, got %q", enq.stkConsumerID)
+	}
+	if enq.stkBody != body {
+		t.Fatalf("expected raw body enqueued, got %q", enq.stkBody)
+	}
+}
+
 func TestWebhookHandler_B2CCallback(t *testing.T) {
-	handler := NewWebhookHandler(nil)
+	handler := NewWebhookHandler(nil, nil)
 	app := setupWebhookTest(handler)
 
 	body := `{"Result":{"ResultType":0,"ResultCode":"0"}}`
@@ -63,7 +112,7 @@ func TestWebhookHandler_B2CCallback(t *testing.T) {
 }
 
 func TestWebhookHandler_B2BCallback(t *testing.T) {
-	handler := NewWebhookHandler(nil)
+	handler := NewWebhookHandler(nil, nil)
 	app := setupWebhookTest(handler)
 
 	body := `{"Result":{"ResultType":0}}`
@@ -80,7 +129,7 @@ func TestWebhookHandler_B2BCallback(t *testing.T) {
 }
 
 func TestWebhookHandler_C2BConfirmation(t *testing.T) {
-	handler := NewWebhookHandler(nil)
+	handler := NewWebhookHandler(nil, nil)
 	app := setupWebhookTest(handler)
 
 	body := `{"TransactionType":"paybill","TransID":"ABC123"}`
@@ -105,7 +154,7 @@ func TestWebhookHandler_C2BConfirmation(t *testing.T) {
 }
 
 func TestWebhookHandler_C2BValidation(t *testing.T) {
-	handler := NewWebhookHandler(nil)
+	handler := NewWebhookHandler(nil, nil)
 	app := setupWebhookTest(handler)
 
 	body := `{"TransactionType":"paybill","TransID":"ABC456"}`
