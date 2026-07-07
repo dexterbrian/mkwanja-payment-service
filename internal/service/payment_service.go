@@ -199,6 +199,22 @@ func NewPaymentService(paymentRepo repository.PaymentRepo, clientRepo repository
 	}
 }
 
+// NewPaymentCompleter builds a PaymentService for settlement only
+// (CompletePayment / FailPayment) — callers that never initiate Daraja
+// requests don't need base URLs or token caches.
+func NewPaymentCompleter(paymentRepo repository.PaymentRepo, clientRepo repository.ClientRepo, journalRepo repository.JournalRepo, encryptKey []byte, logger *slog.Logger) *PaymentService {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &PaymentService{
+		paymentRepo: paymentRepo,
+		clientRepo:  clientRepo,
+		journalRepo: journalRepo,
+		encryptKey:  encryptKey,
+		logger:      logger,
+	}
+}
+
 // InitiateSTKPush initiates an STK push payment.
 func (s *PaymentService) InitiateSTKPush(ctx context.Context, req InitiateSTKPushRequest) (*InitiateSTKPushResult, error) {
 	if err := req.Validate(); err != nil {
