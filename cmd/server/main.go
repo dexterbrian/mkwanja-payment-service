@@ -16,6 +16,7 @@ import (
 	"mkwanja-payment-svc/internal/daraja"
 	"mkwanja-payment-svc/internal/db"
 	"mkwanja-payment-svc/internal/handler"
+	"mkwanja-payment-svc/internal/queue"
 	"mkwanja-payment-svc/internal/repository"
 	"mkwanja-payment-svc/internal/router"
 	"mkwanja-payment-svc/internal/service"
@@ -89,6 +90,17 @@ func main() {
 	// Consumer registry
 	consumerRegistry := config.NewConsumerRegistry(cfg.Consumers)
 
+	// Webhook queue: enqueuer for handlers, worker to process callbacks
+	enqueuer := queue.NewEnqueuer(opts.Addr)
+	defer enqueuer.Close()
+
+	completer := service.NewTenantCompleter(registry, encryptKey, slog.Default().With("service", "tenant_completer"))
+	worker := queue.NewWorker(opts.Addr, completer, rdb, slog.Default().With("service", "queue_worker"))
+	if err := worker.Start(); err != nil {
+		slog.Error("queue worker start failed", "error", err)
+		os.Exit(1)
+	}
+
 	// Build app
 	app := fiber.New(fiber.Config{
 		ReadTimeout:           10 * time.Second,
@@ -111,6 +123,8 @@ func main() {
 		RedisClient:      rdb,
 		Logger:           slog.Default(),
 		OperatorClientID: cfg.OperatorClientID,
+		PaystackBaseURL:  cfg.PaystackBaseURL,
+		WebhookEnqueuer:  enqueuer,
 	})
 
 	// Start reconciliation ticker
@@ -149,6 +163,7 @@ func main() {
 		<-quit
 		slog.Info("shutting down")
 		cancel()
+		worker.Shutdown()
 		_ = app.ShutdownWithTimeout(5 * time.Second)
 	}()
 

@@ -26,6 +26,8 @@ type Dependencies struct {
 	EncryptKey       []byte
 	DarajaBaseURL    string
 	CallbackURL      string
+	PaystackBaseURL  string
+	WebhookEnqueuer  handler.WebhookEnqueuer
 	RedisClient      *redis.Client
 	Logger           *slog.Logger
 	OperatorClientID string
@@ -82,6 +84,16 @@ func Setup(app *fiber.App, deps Dependencies) {
 	api.Get("/payments/:id", paymentHandler.getPayment)
 	api.Get("/payments", paymentHandler.listPayments)
 
+	// Paystack routes (bring-your-own-credentials, like Daraja)
+	paystackAdapter := &paystackHandlerAdapter{
+		encryptKey:      deps.EncryptKey,
+		paystackBaseURL: deps.PaystackBaseURL,
+		registry:        deps.DBRegistry,
+		logger:          deps.Logger,
+	}
+	api.Put("/clients/:client_id/paystack-credentials", middleware.Idempotency(), paystackAdapter.registerCredentials)
+	api.Post("/payments/paystack/initialize", middleware.Idempotency(), paystackAdapter.initiateCharge)
+
 	// Ledger routes
 	ledgerHandler := &ledgerHandlerAdapter{logger: deps.Logger}
 	api.Get("/ledger", ledgerHandler.listEntries)
@@ -89,13 +101,16 @@ func Setup(app *fiber.App, deps Dependencies) {
 	api.Get("/ledger/trial-balance", ledgerHandler.getTrialBalance)
 
 	// Webhook routes (no consumer auth — outside /v1 group)
-	webhookHandler := handler.NewWebhookHandler(deps.Logger)
+	webhookHandler := handler.NewWebhookHandler(deps.WebhookEnqueuer, deps.Logger)
 	webhooks := app.Group("/webhooks/mpesa")
 	webhooks.Post("/stk/:consumer_id", webhookHandler.HandleSTKCallback)
 	webhooks.Post("/b2c/:consumer_id", webhookHandler.HandleB2CCallback)
 	webhooks.Post("/b2b/:consumer_id", webhookHandler.HandleB2BCallback)
 	webhooks.Post("/c2b/:consumer_id/confirm", webhookHandler.HandleC2BConfirmation)
 	webhooks.Post("/c2b/:consumer_id/validate", webhookHandler.HandleC2BValidation)
+
+	// Paystack webhook — signature-verified per business inside the service
+	app.Post("/webhooks/paystack/:consumer_id", paystackAdapter.handleWebhook)
 }
 
 // clientHandlerAdapter creates the service per-request from the pool in context.
@@ -208,6 +223,60 @@ func (a *paymentHandlerAdapter) listPayments(c *fiber.Ctx) error {
 	svc := a.serviceFromCtx(c)
 	h := handler.NewPaymentHandler(svc, a.logger)
 	return h.ListPayments(c)
+}
+
+// paystackHandlerAdapter creates the Paystack service per-request. Consumer
+// API routes take the pool from context; the webhook route (no consumer
+// auth) resolves it from the registry by the :consumer_id path param.
+type paystackHandlerAdapter struct {
+	encryptKey      []byte
+	paystackBaseURL string
+	registry        *db.Registry
+	logger          *slog.Logger
+}
+
+func (a *paystackHandlerAdapter) serviceFromPool(pool *pgxpool.Pool) *service.PaystackService {
+	stdlibDB := stdlib.OpenDBFromPool(pool)
+	q := dbgen.New(stdlibDB)
+	paymentRepo := repository.NewPgxPaymentRepo(q)
+	paystackRepo := repository.NewPgxPaystackRepo(q)
+	journalRepo := repository.NewPgxJournalRepo(q, stdlibDB)
+	clientRepo := repository.NewPgxClientRepo(q)
+	// The completer only needs the repos — no Daraja config.
+	completer := service.NewPaymentCompleter(paymentRepo, clientRepo, journalRepo, a.encryptKey, a.logger)
+	return service.NewPaystackService(paymentRepo, paystackRepo, completer, a.encryptKey, a.paystackBaseURL, a.logger)
+}
+
+func (a *paystackHandlerAdapter) serviceFromCtx(c *fiber.Ctx) *service.PaystackService {
+	pool, ok := c.Locals("db_pool").(*pgxpool.Pool)
+	if !ok {
+		return nil
+	}
+	return a.serviceFromPool(pool)
+}
+
+func (a *paystackHandlerAdapter) registerCredentials(c *fiber.Ctx) error {
+	svc := a.serviceFromCtx(c)
+	h := handler.NewPaystackHandler(svc, a.logger)
+	return h.RegisterCredentials(c)
+}
+
+func (a *paystackHandlerAdapter) initiateCharge(c *fiber.Ctx) error {
+	svc := a.serviceFromCtx(c)
+	h := handler.NewPaystackHandler(svc, a.logger)
+	return h.InitiateCharge(c)
+}
+
+func (a *paystackHandlerAdapter) handleWebhook(c *fiber.Ctx) error {
+	pool, err := a.registry.Get(c.Params("consumer_id"))
+	if err != nil {
+		a.logger.Error("paystack webhook for unknown consumer", "consumer_id", c.Params("consumer_id"))
+		// Still 200 — never invite provider retries against a bad URL.
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "ok"})
+	}
+	svc := a.serviceFromPool(pool)
+	h := handler.NewPaystackHandler(svc, a.logger)
+	return h.HandleWebhook(c)
 }
 
 // ledgerHandlerAdapter creates the journal service per-request from the pool in context.

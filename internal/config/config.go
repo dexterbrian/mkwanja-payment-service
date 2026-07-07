@@ -28,6 +28,8 @@ type Config struct {
 	DarajaBaseURL     string `envconfig:"DARAJA_BASE_URL" required:"true"`
 	DarajaCallbackURL string `envconfig:"DARAJA_CALLBACK_URL" required:"true"`
 
+	PaystackBaseURL string `envconfig:"PAYSTACK_BASE_URL" default:"https://api.paystack.co"`
+
 	OperatorClientID   string `envconfig:"OPERATOR_CLIENT_ID" default:""`
 	OperatorConsumerID string `envconfig:"OPERATOR_CONSUMER_ID" default:"mkwanja"`
 	OperatorClientName string `envconfig:"OPERATOR_CLIENT_NAME" default:"Dexter Operator"`
@@ -45,6 +47,7 @@ func Load() (*Config, error) {
 		CredentialEncryptionKey: mustEnv("CREDENTIAL_ENCRYPTION_KEY"),
 		DarajaBaseURL:           mustEnv("DARAJA_BASE_URL"),
 		DarajaCallbackURL:       mustEnv("DARAJA_CALLBACK_URL"),
+		PaystackBaseURL:         getEnv("PAYSTACK_BASE_URL", "https://api.paystack.co"),
 		OperatorClientID:        getEnv("OPERATOR_CLIENT_ID", ""),
 		OperatorConsumerID:      getEnv("OPERATOR_CONSUMER_ID", "mkwanja"),
 		OperatorClientName:      getEnv("OPERATOR_CLIENT_NAME", "Dexter Operator"),
